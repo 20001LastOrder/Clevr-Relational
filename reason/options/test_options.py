@@ -10,5 +10,6 @@ class TestOptions(BaseOptions):
         self.parser.add_argument('--save_result_path', required=True, type=str, help='save result path')
         self.parser.add_argument('--max_val_samples', default=None, type=int, help='max val data')
         self.parser.add_argument('--batch_size', default=256, type=int, help='batch_size')
-
+        self.parser.add_argument('--use_coords', action='store_true', help='whether use coordinates')
+            
         self.is_train = False

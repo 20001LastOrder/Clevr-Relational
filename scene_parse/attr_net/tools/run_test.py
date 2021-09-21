@@ -1,13 +1,15 @@
 import os
 import json
-
+import sys
+# insert at 1, 0 is the script path (or '' in REPL)
+sys.path.insert(1, '.')
 from options import get_options
 from datasets import get_dataloader
 from model import get_model
 import utils
+from tqdm import tqdm
 
-
-COMP_CAT_DICT_PATH = 'tools/clevr_comp_cat_dict.json'
+COMP_CAT_DICT_PATH = 'tools/clevr_cat_dict.json'
 
 
 opt = get_options('test')
@@ -26,7 +28,8 @@ if opt.dataset == 'clevr':
     } for i in range(15000)]
 
 count = 0
-for data, _, idxs, cat_idxs in test_loader:
+
+for data, labels, idxs, cat_idxs in tqdm(test_loader, 'processing objects batches'):
     model.set_input(data)
     model.forward()
     pred = model.get_pred()
@@ -37,9 +40,10 @@ for data, _, idxs, cat_idxs in test_loader:
             if opt.use_cat_label:
                 cid = cat_idxs[i] if isinstance(cat_idxs[i], int) else cat_idxs[i].item()
                 obj['color'], obj['material'], obj['shape'] = cat_dict[cid].split(' ')
+
         scenes[img_id]['objects'].append(obj)
     count += idxs.size(0)
-    print('%d / %d objects processed' % (count, len(test_loader.dataset)))
+    # print('%d / %d objects processed' % (count, len(test_loader.dataset)))
 
 output = {
     'info': '%s derendered scene' % opt.dataset,

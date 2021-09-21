@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import pycocotools.mask as mask_util
-
+import h5py
 
 class ClevrObjectDataset(Dataset):
 
@@ -35,19 +35,30 @@ class ClevrObjectDataset(Dataset):
             self.feat_vecs = None
 
         self.img_dir = img_dir
+
         self.split = split
         self.concat_img = concat_img
-
+        self.dataset_h5 = None
         transform_list = [transforms.ToTensor()]
         self._transform = transforms.Compose(transform_list)
         
     def __len__(self):
         return len(self.img_ids)
 
+    def load_h5(self):
+        self.dataset_h5 = h5py.File(self.img_dir, 'r')['images']
+
     def __getitem__(self, idx):
-        img_name = 'CLEVR_%s_%06d.png' % (self.split, self.img_ids[idx])
-        img = cv2.imread(os.path.join(self.img_dir, img_name), cv2.IMREAD_COLOR)
-        img = self._transform(img)
+        if '.h5' not in self.img_dir:
+            img_name = 'CLEVR_%s_%06d.png' % (self.split, self.img_ids[idx])
+            img = cv2.imread(os.path.join(self.img_dir, img_name), cv2.IMREAD_COLOR)
+            img = self._transform(img)
+        else:
+            if self.dataset_h5 is None:
+                self.load_h5()
+            img = self.dataset_h5[self.img_ids[idx]]
+            img = img[:, :, ::-1].copy() # first transform to cv2 BGR
+            img = self._transform(img)
 
         label = -1
         if self.feat_vecs is not None:

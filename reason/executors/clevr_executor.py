@@ -33,11 +33,13 @@ CLEVR_ANSWER_CANDIDATES = {
 class ClevrExecutor:
     """Symbolic program executor for CLEVR"""
 
-    def __init__(self, train_scene_json, val_scene_json, vocab_json):
-        self.scenes = {
-            'train': utils.load_scenes(train_scene_json),
-            'val': utils.load_scenes(val_scene_json)
-        }
+    def __init__(self, scene_json, vocab_json):
+        with open(scene_json, 'r') as f:
+            self.scenes = json.load(f)['scenes']
+        
+        if len(self.scenes) > 0 and 'relationships' not in self.scenes[0]:
+            self.scenes = utils.load_scenes(scene_json)
+            
         self.vocab = utils.load_vocab(vocab_json)
         self.colors = CLEVR_COLORS
         self.materials = CLEVR_MATERIALS
@@ -48,9 +50,8 @@ class ClevrExecutor:
         self.modules = {}
         self._register_modules()
     
-    def run(self, x, index, split, guess=False, debug=False):
+    def run(self, x, index, guess=False, debug=False):
         assert self.modules and self.scenes, 'Must have scene annotations and define modules first'
-        assert split == 'train' or split == 'val'
 
         ans, temp = None, None
 
@@ -63,7 +64,15 @@ class ClevrExecutor:
         if length == 0:
             return 'error'
 
-        scene = self.scenes[split][index]
+        scene = self.scenes[index]
+        processed_scene = []
+        if 'relationships' in scene:
+            for i, obj in enumerate(scene['objects']):
+                obj['id'] = i
+                obj['relationships'] = {n: r[i] for n, r in scene['relationships'].items()}
+                processed_scene.append(obj)
+            scene = processed_scene    
+        
         self.exe_trace = []
         for j in range(length):
             i = length - 1 - j
@@ -391,6 +400,14 @@ class ClevrExecutor:
                 if o['position'][1] < obj['position'][1]:
                     output.append(o)
             return output
+        else:
+            candidates = obj['relationships']['behind']
+            output = []
+            for o in scene:
+                if o['id'] in candidates:
+                    output.append(o)
+            return output
+            
         return 'error'
     
     def relate_front(self, obj, scene):
@@ -400,6 +417,14 @@ class ClevrExecutor:
                 if o['position'][1] > obj['position'][1]:
                     output.append(o)
             return output
+        else:
+            candidates = obj['relationships']['front']
+            output = []
+            for o in scene:
+                if o['id'] in candidates:
+                    output.append(o)
+            return output
+            
         return 'error'
     
     def relate_left(self, obj, scene):
@@ -409,6 +434,14 @@ class ClevrExecutor:
                 if o['position'][0] < obj['position'][0]:
                     output.append(o)
             return output
+        else:
+            candidates = obj['relationships']['left']
+            output = []
+            for o in scene:
+                if o['id'] in candidates:
+                    output.append(o)
+            return output
+            
         return 'error'
     
     def relate_right(self, obj, scene):
@@ -418,6 +451,14 @@ class ClevrExecutor:
                 if o['position'][0] > obj['position'][0]:
                     output.append(o)
             return output
+        else:
+            candidates = obj['relationships']['right']
+            output = []
+            for o in scene:
+                if o['id'] in candidates:
+                    output.append(o)
+            return output
+            
         return 'error'
     
     def same_color(self, obj, scene):

@@ -15,7 +15,7 @@ def mkdirs(paths):
 
 
 def invert_dict(d):
-  return {v: k for k, v in d.items()}
+    return {v: k for k, v in d.items()}
   
 
 def load_vocab(path):
@@ -44,6 +44,7 @@ def load_scenes(scenes_json):
             item = {}
             item['id'] = '%d-%d' % (s['image_index'], i)
             if '3d_coords' in o:
+                print('yes')
                 item['position'] = [np.dot(o['3d_coords'], s['directions']['right']),
                                     np.dot(o['3d_coords'], s['directions']['front']),
                                     o['3d_coords'][2]]

@@ -1,6 +1,8 @@
 import os
 import json
-
+import sys
+# insert at 1, 0 is the script path (or '' in REPL)
+sys.path.insert(1, '.')
 from options.test_options import TestOptions
 from datasets import get_dataloader
 from executors import get_executor
@@ -55,15 +57,17 @@ stats = {
     'correct_prog': 0,
     'total': 0
 }
+
+answers = []
 for x, y, ans, idx in loader:
     model.set_input(x, y)
     pred_program = model.parse()
     y_np, pg_np, idx_np, ans_np = y.numpy(), pred_program.numpy(), idx.numpy(), ans.numpy()
 
     for i in range(pg_np.shape[0]):
-        pred_ans = executor.run(pg_np[i], idx_np[i], 'val', guess=True)
+        pred_ans = executor.run(pg_np[i], idx_np[i], guess=True)
+        answers.append(pred_ans)
         gt_ans = executor.vocab['answer_idx_to_token'][ans_np[i]]
-
         q_type = find_clevr_question_type(executor.vocab['program_idx_to_token'][y_np[i][1]])
         if pred_ans == gt_ans:
             stats[q_type] += 1
@@ -82,7 +86,8 @@ result = {
     'compare_attr_acc': stats['compare_attr'] / stats['compare_attr_tot'],
     'query_acc': stats['query'] / stats['query_tot'],
     'program_acc': stats['correct_prog'] / stats['total'],
-    'overall_acc': stats['correct_ans'] / stats['total']
+    'overall_acc': stats['correct_ans'] / stats['total'],
+#     'answers': answers
 }
 print(result)
 

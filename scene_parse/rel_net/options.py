@@ -15,13 +15,14 @@ class BaseOptions():
         self.parser.add_argument('--dataset', default='clevr', type=str, help='dataset')
         self.parser.add_argument('--load_checkpoint_path', default=None, type=str, help='load checkpoint path')
         self.parser.add_argument('--gpu_ids', default='0', type=str, help='ids of gpu to be used')
+        self.parser.add_argument('--label_name', default='horizontal_labels', type=str)
 
-        self.parser.add_argument('--clevr_mini_img_dir', default='../../data/raw/CLEVR_mini/images', type=str, help='clevr-mini image directory')
-        self.parser.add_argument('--clevr_mini_ann_path', default='../../data/attr_net/objects/clevr_mini_objs.json', type=str, help='clevr-mini objects annotation file')
+        self.parser.add_argument('--clevr_img_h5', default='../../data/raw/CLEVR_mini/images', type=str, help='clevr-mini image directory')
+        self.parser.add_argument('--clevr_ann_path', default='../../data/attr_net/objects/clevr_mini_objs.json', type=str, help='clevr-mini objects annotation file')
         
         self.parser.add_argument('--concat_img', default=1, type=int, help='concatenate original image when sent to network')
         self.parser.add_argument('--split_id', default=3500, type=int, help='splitting index between train and val images')
-        self.parser.add_argument('--batch_size', default=64, type=int, help='batch size')
+        self.parser.add_argument('--batch_size', default=50, type=int, help='batch size')
         self.parser.add_argument('--num_workers', default=4, type=int, help='number of workers for loading')
         self.parser.add_argument('--learning_rate', default=0.002, type=float, help='learning rate')
 
@@ -69,10 +70,14 @@ class TrainOptions(BaseOptions):
 
     def initialize(self):
         BaseOptions.initialize(self)
-        self.parser.add_argument('--num_iters', default=100000, type=int, help='total number of iterations')
+        self.parser.add_argument('--max_epochs', default=1000, type=int, help='total number of iterations')
         self.parser.add_argument('--display_every', default=20, type=int, help='display training information every N iterations')
         self.parser.add_argument('--checkpoint_every', default=2000, type=int, help='save every N iterations')
         self.parser.add_argument('--shuffle_data', default=1, type=int, help='shuffle dataloader')
+        self.parser.add_argument('--output_dim', default=8, type=int)
+        self.parser.add_argument('--dev', default=False, action='store_true')
+        self.parser.add_argument('--precision', type=int, default=32, choices=[32,64])
+
         self.is_train = True
 
 
@@ -80,12 +85,12 @@ class TestOptions(BaseOptions):
 
     def initialize(self):
         BaseOptions.initialize(self)
-        self.parser.add_argument('--split', default='val')
+        self.parser.add_argument('--model_path', required=True)
+        self.parser.add_argument('--scenes_path', default='result.json', type=str, help='save path for derendered scene annotation')
         self.parser.add_argument('--output_path', default='result.json', type=str, help='save path for derendered scene annotation')
-        self.parser.add_argument('--clevr_val_ann_path', default='../../data/attr_net/objects/clevr_val_objs.json', type=str, help='clevr val objects annotation file')
-        self.parser.add_argument('--clevr_val_img_dir', default='../../data/raw/CLEVR_v1.0/images/val', type=str, help='clevr val image directory')
-        self.parser.add_argument('--shuffle_data', default=0, type=int, help='shuffle dataloader')
-        self.parser.add_argument('--use_cat_label', default=1, type=int, help='use object detector class label')
+        self.parser.add_argument('--attr_map_path', type=str, required=True, help='path to map back the attribute')
+        self.parser.add_argument('--use_proba',action='store_true')
+
         self.is_train = False
 
 

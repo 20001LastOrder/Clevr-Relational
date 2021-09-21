@@ -8,6 +8,7 @@ import sys
 # insert at 1, 0 is the script path (or '' in REPL)
 sys.path.insert(1, '.')
 import utils
+from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
@@ -29,60 +30,41 @@ def main(args):
 
     scenes = None
     if args.gt_scene_path is not None:
-        if args.dataset == 'clevr':
-            scenes = utils.load_clevr_scenes(args.gt_scene_path)
-        else:
-            with open(args.gt_scene_path) as f:
-                scenes = json.load(f)['scenes']
-
+        with open(args.gt_scene_path) as f:
+            scenes = json.load(f)['scenes']
     with open(args.proposal_path, 'rb') as f:
         proposals = pickle.load(f)
     segms = proposals['all_segms']
     boxes = proposals['all_boxes']
+    features = proposals['all_feats']
 
     nimgs = len(segms[0])
     ncats = len(segms)
     img_anns = []
 
-    for i in range(nimgs):
+    for i in tqdm(range(nimgs), 'processing images...'):
         obj_anns = []
         for c in range(ncats):
             for j, m in enumerate(segms[c][i]):
                 if boxes[c][i][j][4] > args.score_thresh:
-                    if scenes is None: # no ground truth alignment
-                        obj_ann = {
-                            'mask': m,
-                            'image_idx': i,
-                            'category_idx': c,
-                            'feature_vector': None,
-                            'score': float(boxes[c][i][j][4]),
-                        }
-                        obj_anns.append(obj_ann)
-                    else:
-                        mask = mask_util.decode(m)
-                        for o in scenes[i]['objects']:
-                            mask_gt = mask_util.decode(o['mask'])
-                            if utils.iou(mask, mask_gt) > args.align_iou_thresh:
-                                if args.dataset == 'clevr':
-                                    vec = utils.get_feat_vec_clevr(o)
-                                else:
-                                    vec = utils.get_feat_vec_mc(o)
-                                obj_ann = {
-                                    'mask': m,
-                                    'image_idx': i,
-                                    'category_idx': c,
-                                    'feature_vector': vec,
-                                    'score': float(boxes[c][i][j][4]),
-                                }
-                                obj_anns.append(obj_ann)
-                                break
+                    mask = mask_util.decode(m)
+                    for k, o in enumerate(scenes[i]['objects']):
+                        mask_gt = mask_util.decode(o['mask'])
+                        if utils.iou(mask, mask_gt) > args.align_iou_thresh:
+                            obj_ann = {
+                                'mask': m,
+                                'image_idx': i,
+                                'obj_idx': k,
+                                'score': float(boxes[c][i][j][4]),
+                            }
+                            obj_anns.append(obj_ann)
+                            break
         img_anns.append(obj_anns)
-        print('| processing proposals %d / %d images' % (i+1, nimgs))
 
     if scenes is None and args.suppression:
         # Apply suppression on test proposals
         all_objs = []
-        for i, img_ann in enumerate(img_anns):
+        for i, img_ann in enumerate(tqdm(img_anns, 'suppression images...')):
             objs_sorted = sorted(img_ann, key=lambda k: k['score'], reverse=True)
             objs_suppressed = []
             for obj_ann in objs_sorted:
@@ -102,21 +84,53 @@ def main(args):
     else:
         all_objs = [obj_ann for img_ann in img_anns for obj_ann in img_ann]
 
-    obj_masks = [o['mask'] for o in all_objs]
-    img_ids = [o['image_idx'] for o in all_objs]
-    cat_ids = [o['category_idx'] for o in all_objs]
-    scores = [o['score'] for o in all_objs]
-    if scenes is not None:
-        feat_vecs = [o['feature_vector'] for o in all_objs]
-    else:
-        feat_vecs = []
-    output = {
-        'object_masks': obj_masks,
-        'image_idxs': img_ids,
-        'category_idxs': cat_ids,
-        'feature_vectors': feat_vecs,
-        'scores': scores,
+    scene_objects = [[None] * len(scene['objects']) for scene in scenes]
+    
+    for obj in all_objs:
+        scene_objects[obj['image_idx']][obj['obj_idx']] = obj
+    
+    dir_label_map = {
+        'front': 0,
+        'behind': 1,
+        'left': 0,
+        'right': 1
     }
+    
+    horizontal_relationships = []
+    vertical_relationships = []
+    
+    if scenes is not None:
+        for i, scene in enumerate(scenes):
+            for rel in scene['relationships']:
+                for source, targets in enumerate(scene['relationships'][rel]):
+                    # add the relationship only if the detector has recongnized the object
+                    if scene_objects[i][source] == None:
+                        continue
+                    for target in targets:
+                        if scene_objects[i][target] == None:
+                            continue
+                        # append the relationship
+                        if rel in ['left', 'right']:
+                            horizontal_relationships.append({
+                                'image_id': i,
+                                'source': source,
+                                'target': target,
+                                'label': dir_label_map[rel] 
+                            })
+                        else:
+                            vertical_relationships.append({
+                                'image_id': i,
+                                'source': source,
+                                'target': target,
+                                'label': dir_label_map[rel] 
+                            })
+    
+    output = {
+        'scenes': scene_objects,
+        'horizontal_labels': horizontal_relationships,
+        'vertical_labels': vertical_relationships
+    }
+    
     print('| saving object annotations to %s' % args.output_path)
     with open(args.output_path, 'w') as fout:
         json.dump(output, fout)

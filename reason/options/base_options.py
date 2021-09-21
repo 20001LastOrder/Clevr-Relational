@@ -23,7 +23,7 @@ class BaseOptions():
         # - CLEVR
         self.parser.add_argument('--clevr_train_scene_path', default='../data/raw/CLEVR_v1.0/scenes/CLEVR_train_scenes.json',
                                  type=str, help='path to clevr train scenes')
-        self.parser.add_argument('--clevr_val_scene_path', default='../data/raw/CLEVR_v1.0/scenes/CLEVR_val_scenes.json',
+        self.parser.add_argument('--clevr_scene_path', default='../data/raw/CLEVR_v1.0/scenes/CLEVR_val_scenes.json',
                                  type=str, help='path to clevr val scenes')
         self.parser.add_argument('--clevr_train_question_path', default='../data/reason/clevr_h5/clevr_train_questions.h5',
                                  type=str, help='path to clevr train questions')

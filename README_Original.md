@@ -1,3 +1,4 @@
+This is the README from the [original repo](https://github.com/kexinyi/ns-vqa)
 # Neural-Symbolic Visual Question Answering (NS-VQA)
 
 Pytorch implementation for Neural-Symbolic Visual Question Answering (NS-VQA) on the [CLEVR dataset](https://cs.stanford.edu/people/jcjohns/clevr/). 

@@ -1,0 +1,8 @@
+{
+    "shape": ["sphere", "cube", "cylinder"],
+    "size": ["large", "small"],
+    "material": ["metal", "rubber"],
+    "color": ["blue", "brown", "cyan", "gray", "green", "purple", "red", "yellow"],
+    "horizontal_labels": ["left", "right"],
+    "vertical_labels": ["front", "behind"]
+}
