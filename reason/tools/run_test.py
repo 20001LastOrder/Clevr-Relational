@@ -35,64 +35,63 @@ def check_program(pred, gt):
             break
     return True
 
+if __name__ == '__main__':
+    opt = TestOptions().parse()
+    loader = get_dataloader(opt, 'val')
+    executor = get_executor(opt)
+    model = Seq2seqParser(opt)
 
-opt = TestOptions().parse()
-loader = get_dataloader(opt, 'val')
-executor = get_executor(opt)
-model = Seq2seqParser(opt)
+    print('| running test')
+    stats = {
+        'count': 0,
+        'count_tot': 0,
+        'exist': 0,
+        'exist_tot': 0,
+        'compare_num': 0,
+        'compare_num_tot': 0,
+        'compare_attr': 0,
+        'compare_attr_tot': 0,
+        'query': 0,
+        'query_tot': 0,
+        'correct_ans': 0,
+        'correct_prog': 0,
+        'total': 0
+    }
 
-print('| running test')
-stats = {
-    'count': 0,
-    'count_tot': 0,
-    'exist': 0,
-    'exist_tot': 0,
-    'compare_num': 0,
-    'compare_num_tot': 0,
-    'compare_attr': 0,
-    'compare_attr_tot': 0,
-    'query': 0,
-    'query_tot': 0,
-    'correct_ans': 0,
-    'correct_prog': 0,
-    'total': 0
-}
+    answers = []
+    for x, y, ans, idx in loader:
+        model.set_input(x, y)
+        pred_program = model.parse()
+        y_np, pg_np, idx_np, ans_np = y.numpy(), pred_program.numpy(), idx.numpy(), ans.numpy()
 
-answers = []
-for x, y, ans, idx in loader:
-    model.set_input(x, y)
-    pred_program = model.parse()
-    y_np, pg_np, idx_np, ans_np = y.numpy(), pred_program.numpy(), idx.numpy(), ans.numpy()
+        for i in range(pg_np.shape[0]):
+            pred_ans = executor.run(pg_np[i], idx_np[i], guess=True)
+            answers.append(pred_ans)
+            gt_ans = executor.vocab['answer_idx_to_token'][ans_np[i]]
+            q_type = find_clevr_question_type(executor.vocab['program_idx_to_token'][y_np[i][1]])
+            if pred_ans == gt_ans:
+                stats[q_type] += 1
+                stats['correct_ans'] += 1
+            if check_program(pg_np[i], y_np[i]):
+                stats['correct_prog'] += 1
 
-    for i in range(pg_np.shape[0]):
-        pred_ans = executor.run(pg_np[i], idx_np[i], guess=True)
-        answers.append(pred_ans)
-        gt_ans = executor.vocab['answer_idx_to_token'][ans_np[i]]
-        q_type = find_clevr_question_type(executor.vocab['program_idx_to_token'][y_np[i][1]])
-        if pred_ans == gt_ans:
-            stats[q_type] += 1
-            stats['correct_ans'] += 1
-        if check_program(pg_np[i], y_np[i]):
-            stats['correct_prog'] += 1
+            stats['%s_tot' % q_type] += 1
+            stats['total'] += 1
+        print('| %d/%d questions processed, accuracy %f' % (stats['total'], len(loader.dataset), stats['correct_ans'] / stats['total']))
 
-        stats['%s_tot' % q_type] += 1
-        stats['total'] += 1
-    print('| %d/%d questions processed, accuracy %f' % (stats['total'], len(loader.dataset), stats['correct_ans'] / stats['total']))
+    result = {
+        'count_acc': stats['count'] / stats['count_tot'],
+        'exist_acc': stats['exist'] / stats['exist_tot'],
+        'compare_num_acc': stats['compare_num'] / stats ['compare_num_tot'],
+        'compare_attr_acc': stats['compare_attr'] / stats['compare_attr_tot'],
+        'query_acc': stats['query'] / stats['query_tot'],
+        'program_acc': stats['correct_prog'] / stats['total'],
+        'overall_acc': stats['correct_ans'] / stats['total'],
+    #     'answers': answers
+    }
+    print(result)
 
-result = {
-    'count_acc': stats['count'] / stats['count_tot'],
-    'exist_acc': stats['exist'] / stats['exist_tot'],
-    'compare_num_acc': stats['compare_num'] / stats ['compare_num_tot'],
-    'compare_attr_acc': stats['compare_attr'] / stats['compare_attr_tot'],
-    'query_acc': stats['query'] / stats['query_tot'],
-    'program_acc': stats['correct_prog'] / stats['total'],
-    'overall_acc': stats['correct_ans'] / stats['total'],
-#     'answers': answers
-}
-print(result)
-
-utils.mkdirs(os.path.dirname(opt.save_result_path))
-with open(opt.save_result_path, 'w') as fout:
-    json.dump(result, fout)
-print('| result saved to %s' % opt.save_result_path)
-    
+    utils.mkdirs(os.path.dirname(opt.save_result_path))
+    with open(opt.save_result_path, 'w') as fout:
+        json.dump(result, fout)
+    print('| result saved to %s' % opt.save_result_path)
