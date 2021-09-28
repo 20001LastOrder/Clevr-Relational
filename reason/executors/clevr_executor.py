@@ -104,7 +104,7 @@ class ClevrExecutor:
         if ans == 'error' and guess:
             final_module = self.vocab['program_idx_to_token'][x[0]]
             if final_module in self.answer_candidates:
-                ans = random.choice(self.answer_candidates[final_module])
+                ans = -1#random.choice(self.answer_candidates[final_module])
         return ans
 
     def _print_debug_message(self, x):
