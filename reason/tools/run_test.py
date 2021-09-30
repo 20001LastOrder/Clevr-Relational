@@ -59,6 +59,8 @@ if __name__ == '__main__':
     }
 
     answers = []
+    corrects = []
+    programs = []
     for x, y, ans, idx in loader:
         model.set_input(x, y)
         pred_program = model.parse()
@@ -75,6 +77,9 @@ if __name__ == '__main__':
             if check_program(pg_np[i], y_np[i]):
                 stats['correct_prog'] += 1
 
+            corrects.append((pred_ans == gt_ans))
+            programs.append(pg_np[i].tolist())
+
             stats['%s_tot' % q_type] += 1
             stats['total'] += 1
         print('| %d/%d questions processed, accuracy %f' % (stats['total'], len(loader.dataset), stats['correct_ans'] / stats['total']))
@@ -87,9 +92,10 @@ if __name__ == '__main__':
         'query_acc': stats['query'] / stats['query_tot'],
         'program_acc': stats['correct_prog'] / stats['total'],
         'overall_acc': stats['correct_ans'] / stats['total'],
-    #     'answers': answers
+        'answers': answers,
+        'corrects': corrects,
+        'programs': programs
     }
-    print(result)
 
     utils.mkdirs(os.path.dirname(opt.save_result_path))
     with open(opt.save_result_path, 'w') as fout:
