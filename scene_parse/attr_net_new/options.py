@@ -1,6 +1,6 @@
 import argparse
 import os
-import utils
+from . import utils
 import torch
 
 
@@ -94,7 +94,8 @@ class TestOptions(BaseOptions):
         self.parser.add_argument('--output_path', default='result.json', type=str, help='save path for derendered scene annotation')
         self.parser.add_argument('--model_path', type=str, required=True, help='pretrained model path')
         self.parser.add_argument('--attr_map_path', type=str, required=True, help='path to map back the attribute')
-        
+        self.parser.add_argument('--use_proba',action='store_true', help='output probability distributions rather '
+                                                                         'than argmax')
         self.is_train = False
 
 

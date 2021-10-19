@@ -25,7 +25,7 @@ class BaseOptions():
         self.parser.add_argument('--batch_size', default=50, type=int, help='batch size')
         self.parser.add_argument('--num_workers', default=4, type=int, help='number of workers for loading')
         self.parser.add_argument('--learning_rate', default=0.002, type=float, help='learning rate')
-
+        self.parser.add_argument('--attr_names', default='color,shape,material,size', type=str)
         self.initialized = True
 
     def parse(self):
@@ -45,6 +45,11 @@ class BaseOptions():
         else:
             print('| using cpu')
             self.opt.gpu_ids = []
+
+        attr_names = self.opt.attr_names.split(',')
+        self.opt.attr_names = []
+        for attr_name in attr_names:
+            self.opt.attr_names.append(attr_name.strip())
 
         # print and save options
         args = vars(self.opt)
@@ -86,10 +91,13 @@ class TestOptions(BaseOptions):
     def initialize(self):
         BaseOptions.initialize(self)
         self.parser.add_argument('--model_path', required=True)
-        self.parser.add_argument('--scenes_path', default='result.json', type=str, help='save path for derendered scene annotation')
-        self.parser.add_argument('--output_path', default='result.json', type=str, help='save path for derendered scene annotation')
+        self.parser.add_argument('--scenes_path', default='result.json', type=str, help='save path for derendered '
+                                                                                        'scene annotation')
+        self.parser.add_argument('--output_path', default='result.json', type=str, help='save path for derendered '
+                                                                                        'scene annotation')
         self.parser.add_argument('--attr_map_path', type=str, required=True, help='path to map back the attribute')
-        self.parser.add_argument('--use_proba',action='store_true')
+        self.parser.add_argument('--use_proba',action='store_true', help='output probability distributions rather '
+                                                                         'than argmax')
 
         self.is_train = False
 
