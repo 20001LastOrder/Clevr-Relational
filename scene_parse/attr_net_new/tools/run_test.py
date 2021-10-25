@@ -6,7 +6,7 @@ from ..model import AttrNetClassificationModule
 import h5py
 from tqdm import tqdm
 import json
-
+from torch.nn.functional import softmax
 
 if __name__ == '__main__':
     opt = options.get_options('test')
@@ -31,9 +31,13 @@ if __name__ == '__main__':
         data = data.to('cuda')
 
         preds = model.forward(data)
-
-        attribute_labels = np.stack([torch.argmax(pred, dim=1).cpu() for pred in preds]).transpose((1, 0)) \
-            if not opt.use_proba else [pred.cpu().tolist() for pred in preds]
+        if not opt.use_proba:
+            attribute_labels = np.stack([torch.argmax(pred, dim=1).cpu() for pred in preds]).transpose((1, 0))
+        else:
+            attribute_labels = [[] for i in range(data.shape[0])]
+            for attribute in preds:
+                for idx, dist in enumerate(attribute):
+                    attribute_labels[idx].append(softmax(dist, dim=0).cpu().tolist())
 
         for i, attributes in enumerate(attribute_labels):
             img_id = img_ids[i]

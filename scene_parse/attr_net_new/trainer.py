@@ -1,7 +1,7 @@
 import os
 import json
 import torch
-import utils
+from . import utils
 
 
 class Trainer:
@@ -74,7 +74,7 @@ class Trainer:
             loss += self.model.get_loss()
             t += 1
         self.model.train_mode()
-        return loss / t if t is not 0 else 0
+        return loss / t if t != 0 else 0
 
 
 def get_trainer(opt, model, train_loader, val_loader=None):

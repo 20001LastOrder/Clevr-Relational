@@ -14,10 +14,10 @@ class AttrNetClassificationModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters(args)
 
-        if self.hparams.concat_img:
-            self.input_channels = 6
-        else:
-            self.input_channels = 3
+#         if self.hparams.concat_img:
+#             self.input_channels = 6
+#         else:
+        self.input_channels = 3
 
         self.criterion = torch.nn.CrossEntropyLoss()
         self.accuracy = Accuracy()
@@ -65,10 +65,10 @@ class AttrNetClassificationModule(pl.LightningModule):
 class AttributeClassificationNetwork():
 
     def __init__(self, opt, output_dim):    
-        if opt.concat_img:
-            self.input_channels = 6
-        else:
-            self.input_channels = 3
+#         if opt.concat_img:
+#             self.input_channels = 6
+#         else:
+        self.input_channels = 3
 
         if opt.load_checkpoint_path:
             print('| loading checkpoint from %s' % opt.load_checkpoint_path)
@@ -146,8 +146,8 @@ class _Net(nn.Module):
         layers = list(resnet.children())
         layers.pop()
         self.feature_extractor = nn.Sequential(*layers)
-#         for param in self.feature_extractor.parameters():
-#             param.requires_grad = False
+        for param in self.feature_extractor.parameters():
+            param.requires_grad = False
         
         self.output_layers = nn.ModuleList()
         for output_dim in output_dims:

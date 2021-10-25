@@ -83,7 +83,8 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--output_dim', default=8, type=int)
         self.parser.add_argument('--dev', default=False, action='store_true')
         self.parser.add_argument('--precision', type=int, default=32, choices=[32,64])
-
+        self.parser.add_argument('--seed', type=int, default=0)
+        
         self.is_train = True
 
 

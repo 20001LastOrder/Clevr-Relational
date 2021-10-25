@@ -1,17 +1,21 @@
 import sys
 # insert at 1, 0 is the script path (or '' in REPL)
 sys.path.insert(1, '.')
-from options import get_options
-from datasets import get_dataloader, get_dataset
-from model import get_model, AttrNetClassificationModule
-from trainer import get_trainer
+from ..options import get_options
+from ..datasets import get_dataset
+from ..model import get_model, AttrNetClassificationModule
+from ..trainer import get_trainer
 from pytorch_lightning import Trainer
 from pl_bolts.callbacks import PrintTableMetricsCallback
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities.seed import seed_everything
 
 callback = PrintTableMetricsCallback()
 
 opt = get_options('train')
+
+seed_everything(opt.seed, workers=True)
+
 train_data = get_dataset(opt, 'train')
 # val_loader = get_dataloader(opt, 'val')
 model = get_model(opt)
@@ -29,6 +33,7 @@ trainer = Trainer(
     checkpoint_callback=True,
     callbacks=[callback, checkpoint_callback],
     precision=opt.precision,
+    resume_from_checkpoint=opt.load_checkpoint_path
 )
 
 trainer.fit(model, train_data)
