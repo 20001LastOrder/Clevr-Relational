@@ -2,7 +2,7 @@ from .utils import preprocess_rle, rle_masks_to_boxes
 import os
 import json
 from tqdm import tqdm
-import numpy as np
+
 
 def get_complete_categories():
     colors = ['blue', 'brown', 'cyan', 'gray', 'green', 'purple', 'red', 'yellow']
@@ -20,7 +20,8 @@ def get_complete_categories():
                 category_ids.append(cat_id)
                 cat_id += 1
     category_map = {cat : i for i, cat in enumerate(categories)}
-    
+
+
 def load_clevr(dataset_folder, annotation_file, obj_to_category):
     folder = dataset_folder
     with open(os.path.join(folder, annotation_file)) as f:

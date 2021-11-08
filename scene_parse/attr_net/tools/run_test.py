@@ -1,55 +1,54 @@
-import os
-import json
-import sys
-# insert at 1, 0 is the script path (or '' in REPL)
-sys.path.insert(1, '.')
-from options import get_options
-from datasets import get_dataloader
-from model import get_model
-import utils
+import numpy as np
+import torch
+from .. import options
+from ..datasets import get_test_dataloader
+from ..model import AttrNetClassificationModule
+import h5py
 from tqdm import tqdm
+import json
 
-COMP_CAT_DICT_PATH = 'tools/clevr_cat_dict.json'
 
+if __name__ == '__main__':
+    opt = options.get_options('test')
+    model = AttrNetClassificationModule.load_from_checkpoint(opt.model_path)
+    dataloader = get_test_dataloader(opt)
 
-opt = get_options('test')
-test_loader = get_dataloader(opt, 'test')
-model = get_model(opt)
+    with open(opt.attr_map_path, 'r') as f:
+        attr_map = json.load(f)
 
-if opt.use_cat_label:
-    with open(COMP_CAT_DICT_PATH) as f:
-        cat_dict = utils.invert_dict(json.load(f))
+    attr_names = opt.attr_names
 
-if opt.dataset == 'clevr':
+    num_images = len(h5py.File(opt.clevr_img_h5, 'r')['images'])
+
     scenes = [{
         'image_index': i,
-        'image_filename': 'CLEVR_val_%06d.png' % i,
         'objects': []
-    } for i in range(15000)]
+    } for i in range(num_images)]
 
-count = 0
+    model.to('cuda')
 
-for data, labels, idxs, cat_idxs in tqdm(test_loader, 'processing objects batches'):
-    model.set_input(data)
-    model.forward()
-    pred = model.get_pred()
-    for i in range(pred.shape[0]):
-        if opt.dataset == 'clevr':
-            img_id = idxs[i]
-            obj = utils.get_attrs_clevr(pred[i])
-            if opt.use_cat_label:
-                cid = cat_idxs[i] if isinstance(cat_idxs[i], int) else cat_idxs[i].item()
-                obj['color'], obj['material'], obj['shape'] = cat_dict[cid].split(' ')
+    for data, _, idxs, img_ids in tqdm(dataloader, 'processing objects batches'):
+        data = data.to('cuda')
 
-        scenes[img_id]['objects'].append(obj)
-    count += idxs.size(0)
-    # print('%d / %d objects processed' % (count, len(test_loader.dataset)))
+        preds = model.forward(data)
 
-output = {
-    'info': '%s derendered scene' % opt.dataset,
-    'scenes': scenes,
-}
-print('| saving annotation file to %s' % opt.output_path)
-utils.mkdirs(os.path.dirname(opt.output_path))
-with open(opt.output_path, 'w') as fout:
-    json.dump(output, fout)
+        attribute_labels = np.stack([torch.argmax(pred, dim=1).cpu() for pred in preds]).transpose((1, 0)) \
+            if not opt.use_proba else [pred.cpu().tolist() for pred in preds]
+
+        for i, attributes in enumerate(attribute_labels):
+            img_id = img_ids[i]
+            idx = idxs[i]
+            obj = {}
+
+            for j, attribute in enumerate(attributes):
+                attr_name = attr_names[j]
+                if not opt.use_proba:
+                    obj[attr_name] = attr_map[attr_name][attribute]
+                else:
+                    obj[attr_name] = attribute
+
+            scenes[img_id]['objects'].append(obj)
+
+    with open(opt.output_path, 'w') as f:
+        json.dump({'scenes': scenes}, f)
+    print('Output scenes saved!')

@@ -1,6 +1,8 @@
 import os
 import json
 import numpy as np
+from typing import Dict, List
+import pickle
 
 
 def invert_dict(d):
@@ -17,29 +19,30 @@ def mkdirs(paths):
             os.makedirs(paths)
 
 
-def get_feat_vec_clevr(obj):
-    attr_to_idx = {
-        'sphere': 0,
-        'cube': 1,
-        'cylinder': 2,
-        'large': 3,
-        'small': 4,
-        'metal': 5,
-        'rubber': 6,
-        'blue': 7,
-        'brown': 8,
-        'cyan': 9,
-        'gray': 10,
-        'green': 11,
-        'purple': 12,
-        'red': 13,
-        'yellow': 14
-    }
-    feat_vec = np.zeros(18)
-    for attr in ['color', 'material', 'shape', 'size']:
-        feat_vec[attr_to_idx[obj[attr]]] = 1
-    feat_vec[15:] = obj['position']
-    return list(feat_vec)
+def read_json(path):
+    with open(path) as f:
+        return json.load(f)
+
+
+def write_json(obj, path):
+    with open(path, 'w') as f:
+        json.dump(obj, f)
+
+
+def load_pickle(path):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+
+def get_feat_vec(obj: Dict, attr_map: Dict[str, List]):
+    features = {}
+
+    if obj is not None:
+        for attr in attr_map.keys():
+            features[attr] = attr_map[attr].index(obj[attr])
+    else:
+        features = {attr: -1 for attr in attr_map.keys()}
+    return features
 
 
 def get_attrs_clevr(feat_vec):
