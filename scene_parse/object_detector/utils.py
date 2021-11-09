@@ -1,10 +1,12 @@
 import numpy as np
 import pycocotools.mask as mask_util
 
+
 def preprocess_rle(rle):
     """Turn ASCII string into rle bytes"""
     new_rle = {'counts': rle['counts'].encode('ASCII'), 'size': rle['size']}
     return new_rle
+
 
 def rle_masks_to_boxes(masks):
     """Computes the bounding box of each mask in a list of RLE encoded masks."""
@@ -32,6 +34,7 @@ def rle_masks_to_boxes(masks):
         boxes[i, :] = (x0, y0, x1, y1)
 
     return boxes, np.where(keep)[0]
+
 
 def mask_to_bbox(mask):
     """Compute the tight bounding box of a binary mask."""

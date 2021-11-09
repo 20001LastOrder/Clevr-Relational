@@ -61,7 +61,7 @@ def main(args):
                     gt_object_idx = find_gt_object(m, gt_masks, args.align_iou_thresh)
                     # add the information about the ground truth object if we successfully find one
                     if gt_object_idx >= 0:
-                        vec = utils.get_feat_vec(scenes['objects'][gt_object_idx], attribute_map)
+                        vec = utils.get_feat_vec(scenes[i]['objects'][gt_object_idx], attribute_map['attributes'])
                         obj_ann['feature_vector'] = vec
                         obj_ann['obj_idx'] = gt_object_idx
                         obj_anns.append(obj_ann)
@@ -134,13 +134,11 @@ def main(args):
                         # append the relationship
                         idx, rel_type = dir_label_map[rel]
                         relationships[rel_type].append({
-                            {
                                 'image_id': i,
                                 'source': source,
                                 'target': target,
                                 'label': idx
-                            }
-                        })
+                            })
     else:
         for i, objects in enumerate(scene_objects):
             num_obj = len(objects)
