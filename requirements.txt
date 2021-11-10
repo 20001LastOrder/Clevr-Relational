@@ -1,7 +1,7 @@
 h5py>=2.10.0
 numpy>=1.18.2
 torch>=1.9.1
-scipy
+scipy~=1.7.2
 tqdm>=4.59.0
 opencv-python>=4.5.2.52
 torchvision>=0.10.1
@@ -9,3 +9,5 @@ pycocotools~=2.0.2
 torchmetrics~=0.6.0
 detectron2~=0.5
 pulp>=2.5.0
+matplotlib~=3.4.3
+networkx~=2.6.3
