@@ -49,3 +49,14 @@ def mask_to_bbox(mask):
     y0 = ys[0]
     y1 = ys[-1]
     return np.array((x0, y0, x1, y1), dtype=np.float32)
+
+
+def process_object_mask(anno, category_id):
+    obj = {}
+    rle = preprocess_rle(anno['mask'])
+    bbox, _ = rle_masks_to_boxes([rle])
+    obj['bbox'] = bbox[0]
+    obj['segmentation'] = rle
+    obj['bbox_mode'] = 0
+    obj['category_id'] = category_id
+    return obj
