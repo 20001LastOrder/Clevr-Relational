@@ -105,5 +105,27 @@
     "teddy bear",
     "hair drier",
     "toothbrush"
-  ]
+  ],
+  "carla_color_mapping": [
+    "None", "Buildings", "Fences", "Other", "Pedestrians", "Poles", "RoadLines", "Roads", "Sidewalks", "Vegetation", "Vehicles", "Walls", "TrafficSigns", "Sky", "Ground", "Bridge", "RailTrack", "GuardRail", "TrafficLight", "Static", "Dynamic", "Water", "Terrain", "Ambulance", "AudiA2", "AudiETron", "AudiTT", "Beetle", "BmwGrandTourer", "BmwIsetta", "CarlaCola", "ChevroletImpala", "CitroenC3", "Cybertruck", "DodgeCharger2020", "DodgeChargerPolice", "ChargerCop", "Firetruck", "JeepWranglerRubicon", "LincolnMKZ2017", "LincolnMKZ2020", "Mercedes", "MercedesCCC", "Mini", "Mini2021", "Mustang", "NissanMicra", "NissanPatrol", "NissanPatrol2021", "Tazzari", "SeatLeon", "Sprinter", "Tesla", "ToyotaPrius", "Truck", "VolkswagenT2"
+  ],
+  "car_type_mapping": {
+    "24": "vehicle.audi.a2",
+    "25": "vehicle.audi.etron",
+    "26": "vehicle.audi.tt",
+    "28": "vehicle.bmw.grandtourer",
+    "31": "vehicle.chevrolet.impala",
+    "32": "vehicle.citroen.c3",
+    "34": "vehicle.dodge.charger_2020",
+    "38": "vehicle.jeep.wrangler_rubicon",
+    "39": "vehicle.lincoln.mkz_2017",
+    "40": "vehicle.lincoln.mkz_2020",
+    "43": "vehicle.mini.cooper_s",
+    "44": "vehicle.mini.cooper_s_2021",
+    "45": "vehicle.ford.mustang",
+    "46": "vehicle.nissan.micra",
+    "50": "vehicle.seat.leon",
+    "52": "vehicle.tesla.model3",
+    "53": "vehicle.toyota.prius"
+  }
 }

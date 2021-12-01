@@ -8,7 +8,6 @@ import torch
 import json
 import matplotlib.pyplot as plt
 
-
 def get_panoptic_pretrained_predictor():
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file("COCO-PanopticSegmentation/panoptic_fpn_R_101_3x.yaml"))
@@ -74,3 +73,4 @@ def read_json(fname):
 def cv2_imshow(im):
     plt.figure(figsize=(16, 12), dpi=80)
     plt.imshow(im[:, :, ::-1])
+

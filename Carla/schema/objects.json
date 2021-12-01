@@ -1,0 +1,17 @@
+{
+    "car": {
+        "type": ["emergency", "normal"]
+    },
+    "traffic_sign": {
+
+    },
+    "traffic_light": {
+
+    },
+    "pedestrain": {
+        "age": ["adult", "child"]
+    },
+    "pedestrain_crossing": {
+        
+    }
+}

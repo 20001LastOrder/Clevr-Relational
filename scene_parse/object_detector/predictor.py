@@ -2,7 +2,7 @@ import torch
 import detectron2.data.transforms as T
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
-
+from detectron2.data import MetadataCatalog
 
 class ObjectPredictor:
     def __init__(self, cfg):
@@ -11,7 +11,7 @@ class ObjectPredictor:
         self.model.eval()
         
         if len(cfg.DATASETS.TEST):
-            this.metadata = MetadataCatelog.get(cfg.DATASETS.TEST[0])
+            self.metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
         
         DetectionCheckpointer(self.model).load(cfg.MODEL.WEIGHTS)
         self.aug = T.ResizeShortestEdge(
@@ -57,10 +57,12 @@ class ObjectPredictor:
             features = self.model.backbone(preprocessed_images.tensor)
             
             proposals, box_features = self.get_bboxes(preprocessed_images, features)
-            pred_instances, pred_ids = self.get_instances(preprocessed_images, box_features, proposals, features, inputs)
+            pred_instances, pred_ids = self.get_instances(preprocessed_images, box_features, proposals,
+                                                          features, inputs)
 
             return pred_instances[0], box_features[pred_ids]
-        
+
+
 def get_object_predictor(cfg, weight_path, score_threshold):
     cfg.MODEL.WEIGHTS = weight_path  # path to the model we just trained
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_threshold   # set a custom testing threshold
