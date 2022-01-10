@@ -1,30 +1,44 @@
-from ..options import get_options
-from ..datasets import get_dataset
-from ..model import get_model, AttrNetClassificationModule
+from scene_parse.attr_net.datasets import get_dataset
+from scene_parse.attr_net.model import get_model
 from pytorch_lightning import Trainer
-from pl_bolts.callbacks import PrintTableMetricsCallback
 from pytorch_lightning.callbacks import ModelCheckpoint
+import argparse
+import yaml
+from scene_parse.attr_net.config import AttrNetConfiguration
+from pytorch_lightning import loggers as pl_loggers
 
-callback = PrintTableMetricsCallback()
 
-opt = get_options('train')
-train_data = get_dataset(opt, 'train')
-model = get_model(opt)
-checkpoint_callback = ModelCheckpoint(monitor="loss/val", dirpath='pretrained')
+def main(args):
+    train_data = get_dataset(args)
+    model = get_model(args)
+    checkpoint_callback = ModelCheckpoint(monitor="loss/val", dirpath=args.run_dir)
+    logger = pl_loggers.TensorBoardLogger(args.run_dir + "/logs/")
 
-trainer = Trainer(
-    fast_dev_run=opt.dev,
-    logger= None,
-    gpus=-1,
-    deterministic=False,
-    weights_summary=None,
-    log_every_n_steps=1,
-    check_val_every_n_epoch=1,
-    max_epochs=opt.max_epochs,
-    checkpoint_callback=True,
-    callbacks=[callback, checkpoint_callback],
-    precision=opt.precision,
-)
+    trainer = Trainer(
+        fast_dev_run=args.dev,
+        gpus=-1,
+        logger=logger,
+        deterministic=False,
+        weights_summary=None,
+        log_every_n_steps=1,
+        check_val_every_n_epoch=5,
+        max_epochs=args.max_epochs,
+        checkpoint_callback=True,
+        callbacks=[checkpoint_callback],
+        precision=args.precision,
+    )
 
-trainer.fit(model, train_data)
-trainer.test(model=model, datamodule=train_data)
+    trainer.fit(model, train_data)
+    trainer.test(model=model, datamodule=train_data)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_fp', type=str, required=True)
+    arguments = parser.parse_args()
+
+    with open(arguments.config_fp) as f:
+        dataMap = yaml.safe_load(f)
+
+    config = AttrNetConfiguration(**dataMap)
+    main(config)

@@ -4,6 +4,7 @@ from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import MetadataCatalog
 
+
 class ObjectPredictor:
     def __init__(self, cfg):
         self.cfg = cfg.clone()

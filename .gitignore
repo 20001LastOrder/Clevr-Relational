@@ -3,7 +3,7 @@ data/
 *.so
 *.pt
 *.ckpt
-
+results/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

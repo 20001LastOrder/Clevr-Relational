@@ -1,18 +1,18 @@
 from torch.utils.data import DataLoader
 from .clevr_object import ClevrObjectDataset
-from .clevr_object import ClevrObjectAttributeDataset
+from .clevr_object import ObjectAttributeDataset
 
 
 def get_dataset(opt):
     if opt.dataset == 'clevr':
-        ds = ClevrObjectAttributeDataset(opt)
+        ds = ObjectAttributeDataset(opt)
     else:
         raise ValueError('Invalid datsaet %s' % opt.dataset)
     return ds
 
 
 def get_test_dataloader(opt):
-    dataset = ClevrObjectDataset(opt.clevr_ann_path, opt.clevr_img_h5, opt.attr_names)
+    dataset = ClevrObjectDataset(opt.test_ann_path, opt.test_img_h5, opt.attr_names)
     dataloader = DataLoader(
         dataset,
         batch_size=opt.batch_size,

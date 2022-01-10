@@ -60,3 +60,10 @@ def process_object_mask(anno, category_id):
     obj['bbox_mode'] = 0
     obj['category_id'] = category_id
     return obj
+
+
+def get_category_map(categories):
+    return {cat: idx for idx, cat in enumerate(categories)}
+
+def detector_obj_to_cat() :
+    return lambda obj: 0

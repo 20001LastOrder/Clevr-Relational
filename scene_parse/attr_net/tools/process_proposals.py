@@ -1,7 +1,7 @@
 import os
 import argparse
 import pycocotools.mask as mask_util
-from .. import utils
+from scene_parse.attr_net import utils
 from tqdm import tqdm
 
 
@@ -39,7 +39,7 @@ def main(args):
 
     for i in tqdm(range(n_imgs), 'processing images...'):
         obj_anns = []
-        gt_masks = [mask_util.decode(o['mask']) for o in scenes[i]['objects']]
+        gt_masks = [mask_util.decode(o['mask']) for o in scenes[i]['objects']] if scenes is not None else []
         for c in range(n_cats):
             for j, m in enumerate(segms[c][i]):
                 score = boxes[c][i][j][4]
@@ -121,6 +121,7 @@ def main(args):
         key: [] for key in attribute_map['relationships']
     }
 
+    # process relationships
     if scenes is not None:
         for i, scene in enumerate(scenes):
             for rel in scene['relationships']:

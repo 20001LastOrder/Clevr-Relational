@@ -1,0 +1,25 @@
+run_dir: "./results/clevr/models/attr_net"
+dataset: "clevr"
+load_checkpoint_path: null
+ann_path: "./results/clevr/proposals.json"
+img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
+attr_names: ["color", "shape", "material", "size"]
+output_dims: [8, 3, 2, 2]
+batch_size: 50
+num_workers: 4
+
+#training configuration
+split_id: 3500
+learning_rate: 0.002
+concat_img: false
+max_epochs: 20
+precision: 32
+dev: False
+
+# test configuration
+test_img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
+test_ann_path: "./results/clevr/proposals.json"
+model_path: './results/clevr/models/attr_net/model.ckpt'
+attr_map_path: 'G:/My Drive/Research/data/Clevr_mini/clevr_attr_map.json'
+use_proba: true
+output_path: './results/clevr/attr_scenes.json'

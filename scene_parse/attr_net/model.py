@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 class AttrNetClassificationModule(pl.LightningModule):
     def __init__(self, args):
         super().__init__()
-        self.save_hyperparameters(args)
+        self.save_hyperparameters(args.__dict__)
 
         if self.hparams.concat_img:
             self.input_channels = 6
@@ -18,8 +18,7 @@ class AttrNetClassificationModule(pl.LightningModule):
 
         self.criterion = torch.nn.CrossEntropyLoss()
         self.accuracy = Accuracy()
-        # TODO: Parameterize
-        self.output_dims = [8, 3, 2, 2]
+        self.output_dims = self.hparams.output_dims
         self.net = _Net(self.output_dims, self.input_channels)
 
     def forward(self, images):
@@ -68,8 +67,6 @@ class _Net(nn.Module):
         layers = list(resnet.children())
         layers.pop()
         self.feature_extractor = nn.Sequential(*layers)
-#         for param in self.feature_extractor.parameters():
-#             param.requires_grad = False
         
         self.output_layers = nn.ModuleList()
         for output_dim in output_dims:

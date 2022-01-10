@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 class ClevrObjectDataset(Dataset):
     def __init__(self, obj_ann_path, img_dir, attr_names, min_img_id=None, max_img_id=None):
         with open(obj_ann_path) as f:
-            anns = json.load(f)
+            anns = json.load(f)['objects']
 
         min_id = 0
         if min_img_id is not None:
@@ -61,8 +61,6 @@ class ClevrObjectDataset(Dataset):
         labels = -1
         if self.feat_vecs is not None:
             labels = [self.feat_vecs[idx][attr] for attr in self.attr_names]
-        img_id = self.img_ids[idx]
-        cat_id = self.cat_ids[idx]
 
         mask = mask_util.decode(self.obj_masks[idx])
         bbox = np.argwhere(mask)
@@ -78,13 +76,13 @@ class ClevrObjectDataset(Dataset):
         return data, labels, idx, self.img_ids[idx]
 
 
-class ClevrObjectAttributeDataset(pl.LightningDataModule):
+class ObjectAttributeDataset(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()
         self.args = args
 
     def train_dataloader(self):
-        dataset = ClevrObjectDataset(self.args.clevr_ann_path, self.args.clevr_img_h5, self.args.attr_names,
+        dataset = ClevrObjectDataset(self.args.ann_path, self.args.img_h5, self.args.attr_names,
                                      max_img_id=self.args.split_id)
         dataloader = DataLoader(
             dataset,
@@ -96,7 +94,7 @@ class ClevrObjectAttributeDataset(pl.LightningDataModule):
         return dataloader
 
     def val_dataloader(self):
-        dataset = ClevrObjectDataset(self.args.clevr_ann_path, self.args.clevr_img_h5, self.args.attr_names,
+        dataset = ClevrObjectDataset(self.args.ann_path, self.args.img_h5, self.args.attr_names,
                                      min_img_id=self.args.split_id)
         dataloader = DataLoader(
             dataset,
@@ -111,7 +109,7 @@ class ClevrObjectAttributeDataset(pl.LightningDataModule):
         return self.val_dataloader()
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
-        dataset = ClevrObjectDataset(self.args.clevr_ann_path, self.args.clevr_img_h5, self.args.attr_names)
+        dataset = ClevrObjectDataset(self.args.ann_path, self.args.img_h5, self.args.attr_names)
         dataloader = DataLoader(
             dataset,
             batch_size=self.args.batch_size,
