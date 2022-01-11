@@ -1,36 +1,44 @@
-import sys
-# insert at 1, 0 is the script path (or '' in REPL)
-sys.path.insert(1, '.')
-from options import get_options
-from datasets import get_dataset
-from model import get_model
+from scene_parse.rel_net.datasets import get_dataset
+from scene_parse.rel_net.model import get_model
+from scene_parse.rel_net.config import RelNetConfiguration
 from pytorch_lightning import Trainer
-from pl_bolts.callbacks import PrintTableMetricsCallback
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import loggers as pl_loggers
+import argparse
+import yaml
 
-callback = PrintTableMetricsCallback()
 
-opt = get_options('train')
-train_data = get_dataset(opt, 'train')
-model = get_model(opt)
-checkpoint_callback = ModelCheckpoint(monitor="loss/val", dirpath='pretrained_vertical')
+def main(args):
+    train_data = get_dataset(args)
+    model = get_model(args)
+    checkpoint_callback = ModelCheckpoint(monitor="loss/val", dirpath='pretrained_vertical')
+    logger = pl_loggers.TensorBoardLogger(args.run_dir + "/logs/")
 
-trainer = Trainer(
-    fast_dev_run=opt.dev,
-    logger= None,
-    gpus=-1,
-    deterministic=False,
-    weights_summary=None,
-    log_every_n_steps=1,
-    check_val_every_n_epoch=1,
-    max_epochs=opt.max_epochs,
-    checkpoint_callback=True,
-    callbacks=[callback, checkpoint_callback],
-    precision=opt.precision,
-)
+    trainer = Trainer(
+        fast_dev_run=args.dev,
+        logger=logger,
+        gpus=-1,
+        deterministic=False,
+        weights_summary=None,
+        log_every_n_steps=1,
+        check_val_every_n_epoch=1,
+        max_epochs=args.max_epochs,
+        checkpoint_callback=True,
+        callbacks=[checkpoint_callback],
+        precision=args.precision,
+    )
 
-trainer.fit(model, train_data)
-trainer.test(model=model)
-# trainer = get_trainer(opt, model, train_loader, val_loader)
+    trainer.fit(model, train_data)
+    trainer.test(model=model)
 
-# trainer.train()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_fp', type=str, required=True)
+    arguments = parser.parse_args()
+
+    with open(arguments.config_fp) as f:
+        dataMap = yaml.safe_load(f)
+
+    config = RelNetConfiguration(**dataMap)
+    main(config)

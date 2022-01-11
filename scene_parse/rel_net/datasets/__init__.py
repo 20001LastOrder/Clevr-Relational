@@ -1,13 +1,10 @@
 from torch.utils.data import DataLoader
 from .clevr_relation import ClevrRelationDataset
-from .clevr_relation import ClevrObjectRelationDataset
+from .clevr_relation import ObjectRelationDataset
 
-def get_dataset(opt, split):
-    if opt.dataset == 'clevr':
-        ds = ClevrObjectRelationDataset(opt)
-    else:
-        raise ValueError('Invalid datsaet %s' % opt.dataset)
-    return ds
+
+def get_dataset(opt):
+    return ObjectRelationDataset(opt)
 
 
 def get_test_dataloader(opt):

@@ -56,80 +56,6 @@ class RelNetClassificationModule(pl.LightningModule):
         scheduler = CosineAnnealingLR(optimizer, self.hparams.max_epochs)
         return [optimizer], [scheduler]
 
-class AttributeClassificationNetwork():
-
-    def __init__(self, opt, output_dim):    
-        if opt.concat_img:
-            self.input_channels = 6
-        else:
-            self.input_channels = 3
-
-        if opt.load_checkpoint_path:
-            print('| loading checkpoint from %s' % opt.load_checkpoint_path)
-            checkpoint = torch.load(opt.load_checkpoint_path)
-            if self.input_channels != checkpoint['input_channels']:
-                raise ValueError('Incorrect input channels for loaded model')
-            self.output_dim = checkpoint['output_dim']
-            self.net = _Net(self.output_dim, self.input_channels)
-            self.net.load_state_dict(checkpoint['model_state'])
-        else:
-            print('| creating new model')
-            self.output_dim = output_dim
-            self.net = _Net(self.output_dim, self.input_channels)
-
-        self.criterion = nn.CrossEntropyLoss()#nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=opt.learning_rate)
-
-        self.use_cuda = len(opt.gpu_ids) > 0 and torch.cuda.is_available()
-        self.gpu_ids = opt.gpu_ids
-        if self.use_cuda:
-            self.net.cuda(opt.gpu_ids[0])
-
-        self.input, self.label = None, None
-                
-    def set_input(self, x, y=None):
-        self.input = self._to_var(x)
-        if y is not None:
-            self.label = self._to_var(y)
-
-    def step(self):
-        self.optimizer.zero_grad()
-        self.forward()
-        self.loss.backward()
-        self.optimizer.step()
-
-    def forward(self):
-        self.pred = self.net(self.input)
-        if self.label is not None:
-            self.loss = self.criterion(self.pred, self.label)
-            
-    def get_loss(self):
-        return self.loss.data.item()
-
-    def get_pred(self):
-        return self.pred.data.cpu().numpy()
-
-    def eval_mode(self):
-        self.net.eval()
-
-    def train_mode(self):
-        self.net.train()
-
-    def save_checkpoint(self, save_path):
-        checkpoint = {
-            'input_channels': self.input_channels,
-            'output_dim': self.output_dim,
-            'model_state': self.net.cpu().state_dict()
-        }
-        torch.save(checkpoint, save_path)
-        if self.use_cuda:
-            self.net.cuda(self.gpu_ids[0])
-
-    def _to_var(self, x):
-        if self.use_cuda:
-            x = x.cuda()
-        return x
-
 
 class _Net(nn.Module):
 
@@ -160,13 +86,90 @@ class _Net(nn.Module):
     def forward(self, s):
         s = self.feature_extractor(s)
         s = s.view(s.size(0), -1)
-        
 
-            
-        
         return self.output_layer(s)
 
 
 def get_model(opt):
-    model = RelNetClassificationModule(opt)
+    model = RelNetModule(opt)
     return model
+
+
+class RelNetModule(pl.LightningModule):
+    def __init__(self, args):
+        super().__init__()
+        self.save_hyperparameters(args.__dict__)
+
+        self.criterion = torch.nn.BCELoss()
+        self.accuracy = Accuracy()
+
+        # TODO: parameterize other parameters
+        self.net = _RelNet(self.hparams.num_rels)
+
+    def forward(self, source, rel, target):
+        predictions = self.net(source, rel, target)
+        return predictions
+
+    def get_metrics(self, batch):
+        sources, rel, targets, labels = batch
+        predictions = self.forward(sources, rel, targets).squeeze()
+        loss = self.criterion(predictions, labels.float())
+        accuracy = self.accuracy(torch.round(predictions), labels)
+        return loss, accuracy
+
+    def training_step(self, batch, batch_nb):
+        loss, accuracy = self.get_metrics(batch)
+        self.log('loss/train', loss)
+        self.log(f'acc/train', accuracy)
+        return loss
+
+    def validation_step(self, batch, batch_nb):
+        loss, accuracy = self.get_metrics(batch)
+        self.log('loss/val', loss)
+        self.log(f'acc/val', accuracy)
+
+    def test_step(self, batch, batch_nb):
+        loss, accuracy = self.get_metrics(batch)
+        self.log(f'acc/test', accuracy)
+        return accuracy
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.hparams.learning_rate)
+
+        scheduler = CosineAnnealingLR(optimizer, self.hparams.max_epochs)
+        return [optimizer], [scheduler]
+
+
+class _RelNet(nn.Module):
+    def __init__(self, num_rels, input_channels=4, num_features=512, hidden_size=128):
+        super(_RelNet, self).__init__()
+
+        resnet = models.resnet34(pretrained=True)
+        layers = list(resnet.children())
+        layers.pop()
+        layers.pop(0)
+        layers.insert(0, nn.Conv2d(input_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False))
+        self.num_features = num_features
+        self.feature_extractor = nn.Sequential(*layers)
+        # self.feature_fc = nn.Linear(512, num_features, bias=True)
+
+        self.rel_embedding = nn.Embedding(num_rels, num_features)
+
+        self.rnn = nn.RNN(num_features, hidden_size, batch_first=False)
+
+        self.output = nn.Sequential(nn.Linear(hidden_size, 1), nn.Sigmoid())
+
+    def _feature_extractor(self, x):
+        x = self.feature_extractor(x)
+        x = x.view(x.size(0), -1)
+        return x
+
+    def forward(self, source, rel, target):
+        source = self._feature_extractor(source).unsqueeze(0)
+        rel = self.rel_embedding(rel).unsqueeze(0)
+        target = self._feature_extractor(target).unsqueeze(0)
+
+        combined = torch.cat([source, rel, target], dim=0)
+        combined, _ = self.rnn(combined)
+        output = self.output(combined[2])
+        return output

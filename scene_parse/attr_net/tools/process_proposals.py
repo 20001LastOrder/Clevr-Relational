@@ -112,35 +112,38 @@ def main(args):
         else:
             scene_objects[obj['image_idx']].append(obj)
 
-    dir_label_map = {
-        label: (i, rel_type) for rel_type, values in attribute_map['relationships'].items() for i, label in
-        enumerate(values)
-    }
+    # dir_label_map = {
+    #     label: (i, rel_type) for rel_type, values in attribute_map['relationships'].items() for i, label in
+    #     enumerate(values)
+    # }
+    dir_label_map = {value: key for key, value in enumerate(attribute_map['relations'])}
 
-    relationships = {
-        key: [] for key in attribute_map['relationships']
-    }
+    relationships = []
 
     # process relationships
     if scenes is not None:
         for i, scene in enumerate(scenes):
-            for rel in scene['relationships']:
-                for source, targets in enumerate(scene['relationships'][rel]):
-                    # add the relationship only if the detector has recongnized the object
-                    if scene_objects[i][source] is None:
+            objects = set(range(len(scene['objects'])))
+
+            for source in objects:
+                if scene_objects[i][source] is None:
+                    continue
+                for target in objects:
+                    if scene_objects[i][target] is None:
                         continue
-                    for target in targets:
-                        if scene_objects[i][target] is None:
-                            continue
-                        # append the relationship
-                        idx, rel_type = dir_label_map[rel]
-                        relationships[rel_type].append({
-                                'image_id': i,
-                                'source': source,
-                                'target': target,
-                                'label': idx
-                            })
+                    rel_labels = []
+                    for rel, values in scene['relationships'].items():
+                        if target in values[source]:
+                            rel_labels.append(dir_label_map[rel])
+                    relationships.append({
+                        'image_id': i,
+                        'source': source,
+                        'target': target,
+                        'rel_ids': rel_labels,
+                    })
+
     else:
+        # TODO: Generate dataset for testing
         for i, objects in enumerate(scene_objects):
             num_obj = len(objects)
             for source in range(num_obj - 1):
@@ -159,11 +162,9 @@ def main(args):
 
     output = {
         'scenes': scene_objects,
-        'objects': output_objects
+        'objects': output_objects,
+        'relationships': relationships
     }
-
-    for key, rels in relationships.items():
-        output[key] = rels
 
     print('| saving object annotations to %s' % args.output_path)
     utils.write_json(output, args.output_path)

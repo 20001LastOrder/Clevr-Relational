@@ -1,0 +1,13 @@
+run_dir: "./results/clevr/models/rel_net"
+ann_path: "./results/clevr/proposals.json"
+img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
+num_rels: 4
+batch_size: 64
+num_workers: 4
+
+# training configuration
+dev: false
+max_epochs: 20
+precision: 32
+split_id: 500
+learning_rate: 0.002
