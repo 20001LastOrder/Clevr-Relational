@@ -11,7 +11,7 @@ import yaml
 def main(args):
     train_data = get_dataset(args)
     model = get_model(args)
-    checkpoint_callback = ModelCheckpoint(monitor="loss/val", dirpath='pretrained_vertical')
+    checkpoint_callback = ModelCheckpoint(monitor="loss/val", dirpath=args.run_dir)
     logger = pl_loggers.TensorBoardLogger(args.run_dir + "/logs/")
 
     trainer = Trainer(
@@ -26,6 +26,7 @@ def main(args):
         checkpoint_callback=True,
         callbacks=[checkpoint_callback],
         precision=args.precision,
+        resume_from_checkpoint=args.resume_from_checkpoint
     )
 
     trainer.fit(model, train_data)

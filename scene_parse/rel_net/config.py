@@ -1,7 +1,7 @@
 class RelNetConfiguration:
     def __init__(self, run_dir: str, ann_path: str, img_h5: str, num_rels: int, split_id: int,
                  dev: bool = False, max_epochs: int = 20, precision: int = 32, batch_size: int = 64,
-                 num_workers: int = 4, learning_rate: float = 0.002):
+                 num_workers: int = 4, learning_rate: float = 0.002, resume_from_checkpoint=None):
         self.run_dir = run_dir
         self.dev = dev
         self.max_epochs = max_epochs
@@ -13,3 +13,4 @@ class RelNetConfiguration:
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.learning_rate = learning_rate
+        self.resume_from_checkpoint = resume_from_checkpoint

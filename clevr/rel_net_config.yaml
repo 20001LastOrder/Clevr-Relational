@@ -11,3 +11,4 @@ max_epochs: 20
 precision: 32
 split_id: 500
 learning_rate: 0.002
+resume_from_checkpoint: "./results/clevr/models/rel_net/epoch=4-step=7584.ckpt"

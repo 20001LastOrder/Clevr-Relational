@@ -190,7 +190,7 @@ class ObjectRelationDataset(pl.LightningDataModule):
 
     def val_dataloader(self):
         dataset = RelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels,
-                                  min_img_id=self.args.split_id, max_img_id=1000)
+                                  min_img_id=self.args.split_id)
         dataloader = DataLoader(
             dataset,
             batch_size=self.args.batch_size,
