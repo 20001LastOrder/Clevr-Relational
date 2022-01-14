@@ -31,7 +31,7 @@ def main(args):
     proposals = utils.load_pickle(args.proposal_path)
     segms = proposals['all_segms']
     boxes = proposals['all_boxes']
-    features = proposals['all_feats']
+    # features = proposals['all_feats']
 
     n_imgs = len(segms[0])
     n_cats = len(segms)
@@ -52,7 +52,7 @@ def main(args):
                     'image_idx': i,
                     'category_idx': c,
                     'score': float(boxes[c][i][j][4]),
-                    'features': features[c][i][j].tolist()
+                    # 'features': features[c][i][j].tolist()
                 }
                 if scenes is None:  # no ground truth alignment
                     obj_ann['feature_vector'] = None
@@ -92,7 +92,7 @@ def main(args):
     img_ids = [o['image_idx'] for o in all_objs]
     cat_ids = [o['category_idx'] for o in all_objs]
     scores = [o['score'] for o in all_objs]
-    features = [o['features'] for o in all_objs]
+    # features = [o['features'] for o in all_objs]
     feat_vecs = [o['feature_vector'] for o in all_objs] if scenes is not None else []
 
     output_objects = {
@@ -101,7 +101,7 @@ def main(args):
         'category_idxs': cat_ids,
         'feature_vectors': feat_vecs,
         'scores': scores,
-        'features': features
+        # 'features': features
     }
 
     scene_objects = [[None] * len(scene['objects']) for scene in scenes] if scenes is not None else [[] for _ in
@@ -146,19 +146,15 @@ def main(args):
         # TODO: Generate dataset for testing
         for i, objects in enumerate(scene_objects):
             num_obj = len(objects)
-            for source in range(num_obj - 1):
-                for target in range(source + 1, num_obj):
-                    for rels in relationships.values():
-                        rels.append({
-                            'image_id': i,
-                            'source': source,
-                            'target': target
-                        })
-                        rels.append({
-                            'image_id': i,
-                            'source': target,
-                            'target': source
-                        })
+            for source in range(num_obj):
+                for target in range(num_obj):
+                    if source == target:
+                        continue
+                    relationships.append({
+                        'image_id': i,
+                        'source': source,
+                        'target': target,
+                    })
 
     output = {
         'scenes': scene_objects,

@@ -106,13 +106,13 @@ class RelNetModule(pl.LightningModule):
         # TODO: parameterize other parameters
         self.net = _RelNet(self.hparams.num_rels)
 
-    def forward(self, source, rel, target):
-        predictions = self.net(source, rel, target)
+    def forward(self, source, target):
+        predictions = self.net(source, target)
         return predictions
 
     def get_metrics(self, batch):
-        sources, rel, targets, labels = batch
-        predictions = self.forward(sources, rel, targets).squeeze()
+        sources, targets, labels, _, _, _ = batch
+        predictions = self.forward(sources, targets).squeeze()
         loss = self.criterion(predictions, labels.float())
         accuracy = self.accuracy(torch.round(predictions), labels)
         return loss, accuracy
@@ -153,23 +153,20 @@ class _RelNet(nn.Module):
         self.feature_extractor = nn.Sequential(*layers)
         # self.feature_fc = nn.Linear(512, num_features, bias=True)
 
-        self.rel_embedding = nn.Embedding(num_rels, num_features)
-
         self.rnn = nn.RNN(num_features, hidden_size, batch_first=False)
 
-        self.output = nn.Sequential(nn.Linear(hidden_size, 1), nn.Sigmoid())
+        self.output = nn.Sequential(nn.Linear(hidden_size, num_rels), nn.Sigmoid())
 
     def _feature_extractor(self, x):
         x = self.feature_extractor(x)
         x = x.view(x.size(0), -1)
         return x
 
-    def forward(self, source, rel, target):
+    def forward(self, source, target):
         source = self._feature_extractor(source).unsqueeze(0)
-        rel = self.rel_embedding(rel).unsqueeze(0)
         target = self._feature_extractor(target).unsqueeze(0)
 
-        combined = torch.cat([source, rel, target], dim=0)
+        combined = torch.cat([source, target], dim=0)
         combined, _ = self.rnn(combined)
-        output = self.output(combined[2])
+        output = self.output(combined[1])
         return output

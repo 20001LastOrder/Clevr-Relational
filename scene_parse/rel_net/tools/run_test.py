@@ -1,65 +1,64 @@
-import sys
+import argparse
+
+import yaml
+
+from scene_parse.rel_net.config import RelNetConfiguration
+from scene_parse.rel_net.datasets import get_test_dataloader
+from scene_parse.rel_net.model import RelNetModule
 import torch
-import numpy as np
-# insert at 1, 0 is the script path (or '' in REPL)
-sys.path.insert(1, '.')
-from options import get_options
-from datasets import get_test_dataloader
-from model import get_model, RelNetClassificationModule
-from pytorch_lightning import Trainer
-from torch import nn
-from pl_bolts.callbacks import PrintTableMetricsCallback
-from pytorch_lightning.callbacks import ModelCheckpoint
-import h5py
 from tqdm import tqdm
 import json
 
-opt = get_options('test')
-model = RelNetClassificationModule.load_from_checkpoint(opt.model_path)
-dataloader = get_test_dataloader(opt)
 
-with open(opt.attr_map_path, 'r') as f:
-    attr_map = json.load(f)
+def main(opt):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = RelNetModule.load_from_checkpoint(opt.model_path, args=opt)
+    dataloader = get_test_dataloader(opt)
 
-with open(opt.scenes_path, 'r') as f:
-    result = json.load(f)
+    with open(opt.scenes_path, 'r') as f:
+        result = json.load(f)
 
-scenes = result['scenes']
-relation_names = attr_map[opt.label_name]
+    scenes = result['scenes']
+    relation_names = opt.label_names
 
-for scene in scenes:
-    if 'relationships' not in scene:
-        scene['relationships'] = {}
-    for relation in relation_names:
-        scene['relationships'][relation] = [[] for _ in scene['objects']]
+    for scene in scenes:
+        if 'relationships' not in scene:
+            scene['relationships'] = {}
+        for relation in relation_names:
+            scene['relationships'][relation] = [[] for _ in scene['objects']]
 
-    
-num_images = len(h5py.File(opt.clevr_img_h5, 'r')['images'])
+    model.to(device)
 
-model.to('cuda')
-
-for data, _, sources, targets, img_ids in tqdm(dataloader, 'processing objects batches'):
-    data = data.to('cuda')
-    
-    preds = model.forward(data)
-    
-    if not opt.use_proba:
-        labels = torch.argmax(preds, dim=1).cpu().numpy()
-    else:
-        labels = nn.functional.softmax(preds, dim=1).cpu().detach().numpy()
-        
-    for i, label in enumerate(labels):
-        img_id = img_ids[i]
-        edge = (sources[i].item(), targets[i].item())
+    for sources, targets, _, source_ids, target_ids, img_ids in tqdm(dataloader, 'processing objects batches'):
+        sources = sources.to('cuda')
+        targets = targets.to('cuda')
+        preds = model.forward(sources, targets)
 
         if not opt.use_proba:
-            relation = relation_names[label]
-            scenes[img_id]['relationships'][relation][edge[0]].append(edge[1])
-        else:
-            for rel, proba in enumerate(label):
-                relation = relation_names[rel]
-                scenes[img_id]['relationships'][relation][edge[0]].append((edge[1], proba.item()))
-                
-with open(opt.output_path, 'w') as f:
-    json.dump({'scenes': scenes}, f)
-print('Output scenes saved!')
+            preds = torch.round(preds).int().cpu().numpy()
+
+        for i, label in enumerate(preds):
+            img_id = img_ids[i]
+            edge = (source_ids[i].item(), target_ids[i].item())
+            for j, pred in enumerate(preds[i]):
+                relation = relation_names[j]
+                if not opt.use_proba and pred[i][j].item() == 1:
+                    scenes[img_id]['relationships'][relation][edge[0]].append(edge[1])
+                else:
+                    scenes[img_id]['relationships'][relation][edge[0]].append((edge[1], preds[i][j].item()))
+
+    with open(opt.output_path, 'w') as f:
+        json.dump({'scenes': scenes}, f)
+    print('Output scenes saved!')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_fp', type=str, required=True)
+    arguments = parser.parse_args()
+
+    with open(arguments.config_fp) as fp:
+        dataMap = yaml.safe_load(fp)
+
+    config = RelNetConfiguration(**dataMap)
+    main(config)

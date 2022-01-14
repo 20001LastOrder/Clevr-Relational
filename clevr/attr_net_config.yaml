@@ -17,9 +17,9 @@ precision: 32
 dev: False
 
 # test configuration
-test_img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
-test_ann_path: "./results/clevr/proposals.json"
+test_img_h5: "G:/My Drive/Research/data/Original/images.h5"
+test_ann_path: "./results/clevr_val/proposals.json"
 model_path: './results/clevr/models/attr_net/model.ckpt'
 attr_map_path: 'G:/My Drive/Research/data/Clevr_mini/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr/attr_scenes.json'
+output_path: './results/clevr_val/attr_scenes.json'

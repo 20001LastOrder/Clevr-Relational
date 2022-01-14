@@ -30,7 +30,6 @@ class ClevrObjectDataset(Dataset):
         self.obj_masks = anns['object_masks'][min_id: max_id]
         self.img_ids = anns['image_idxs'][min_id: max_id]
         self.cat_ids = anns['category_idxs'][min_id: max_id]
-        self.features = anns['features'][min_id: max_id]
 
         if anns['feature_vectors'] is not None and anns['feature_vectors'] != []:
             self.feat_vecs = anns['feature_vectors'][min_id: max_id]

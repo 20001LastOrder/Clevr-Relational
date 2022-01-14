@@ -126,12 +126,12 @@ class RelationDataset(Dataset):
 
         for rel in raw_dataset:
             # add positive samples of the pair
-            for pos in rel['rel_ids']:
-                self.dataset.append([rel['image_id'], rel['source'], pos, rel['target'], 1])
+            labels = [0 for _ in range(num_rels)]
+            if 'rel_ids' in rel:
+                for pos in rel['rel_ids']:
+                    labels[pos] = 1
 
-            # add negative samples of the pair
-            for neg in all_rels.difference(set(rel['rel_ids'])):
-                self.dataset.append([rel['image_id'], rel['source'], neg, rel['target'], 0])
+            self.dataset.append([rel['image_id'], rel['source'], rel['target'], labels])
 
         self.dataset_h5 = None
         self.resize_transformer = transforms.Compose([transforms.ToTensor(), transforms.Resize((244, 224))])
@@ -147,10 +147,9 @@ class RelationDataset(Dataset):
 
     def __getitem__(self, idx):
         img_id = self.dataset[idx][0]
-        source = self.dataset[idx][1]
-        rel = self.dataset[idx][2]
-        target = self.dataset[idx][3]
-        label = self.dataset[idx][4]
+        source_id = self.dataset[idx][1]
+        target_id = self.dataset[idx][2]
+        labels = self.dataset[idx][3]
 
         if self.dataset_h5 is None:
             self.load_h5()
@@ -159,8 +158,8 @@ class RelationDataset(Dataset):
         img = img[:, :, ::-1].copy()  # first transform to cv2 BGR
         img = self._transform(img)
 
-        source_mask = np.expand_dims(mask_util.decode(self.scenes[img_id][source]['mask']).astype(int), axis=2)
-        target_mask = np.expand_dims(mask_util.decode(self.scenes[img_id][target]['mask']).astype(int), axis=2)
+        source_mask = np.expand_dims(mask_util.decode(self.scenes[img_id][source_id]['mask']).astype(int), axis=2)
+        target_mask = np.expand_dims(mask_util.decode(self.scenes[img_id][target_id]['mask']).astype(int), axis=2)
 
         source_mask = self.resize_transformer(source_mask)
         target_mask = self.resize_transformer(target_mask)
@@ -168,7 +167,7 @@ class RelationDataset(Dataset):
         source = torch.cat([source_mask, img], dim=0)
         target = torch.cat([target_mask, img], dim=0)
 
-        return source, rel, target, np.int32(label)
+        return source, target, np.int32(labels), source_id, target_id, img_id
 
 
 class ObjectRelationDataset(pl.LightningDataModule):
