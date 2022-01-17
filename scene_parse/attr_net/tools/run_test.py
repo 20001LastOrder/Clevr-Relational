@@ -8,11 +8,13 @@ from tqdm import tqdm
 import json
 import argparse
 import yaml
+import torch.nn.functional as functional
 
 
 def collect_proba(preds):
-    result = [[] for _ in preds[0]] # each attribute of the preds have the same dimension (# of objects)
+    result = [[] for _ in preds[0]]  # each attribute of the preds have the same dimension (# of objects)
     for pred in preds:
+        pred = functional.softmax(pred, dim=1)
         for j, value in enumerate(pred.cpu().tolist()):
             result[j].append(value)
     return result

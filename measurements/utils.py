@@ -2,23 +2,42 @@ import json
 import networkx as nx
 from typing import Dict, List, Union, Optional
 import numpy as np
-
+from collections import defaultdict
 
 def read_json(file_path: str) -> Union[Dict, List]:
     with open(file_path, 'r') as f:
         return json.load(f)
 
 
-def convert_to_nx(scene, directions, colors) -> nx.Graph:
+def convert_to_nx(scene, directions, colors=None) -> nx.Graph:
     graph = nx.MultiDiGraph()
     nodes = [(i, data) for i, data in enumerate(scene['objects'])]
 
     graph.add_nodes_from(nodes)
-    for color, direction in zip(colors, directions):
+    for i, direction in enumerate(directions):
         data = scene['relationships'][direction]
         for source, targets in enumerate(data):
             for target in targets:
-                graph.add_edge(source, target, direction, color=color)
+                if colors is not None:
+                    graph.add_edge(source, target, direction, color=colors[i])
+                else:
+                    graph.add_edge(source, target, direction, direction=direction)
+    return graph
+
+
+def convert_to_nx_di(scene, directions) -> nx.Graph:
+    graph = nx.DiGraph()
+    nodes = [(i, data) for i, data in enumerate(scene['objects'])]
+    edges = defaultdict(set)
+    graph.add_nodes_from(nodes)
+    for i, direction in enumerate(directions):
+        data = scene['relationships'][direction]
+        for source, targets in enumerate(data):
+            for target in targets:
+                edges[(source, target)].add(direction)
+
+    for (source, target), directions in edges.items():
+        graph.add_edge(source, target, directions=directions)
     return graph
 
 
@@ -60,3 +79,22 @@ def is_more_significant(target: Dict[str, List[float]], objects: List[Dict[str, 
             more_significant = more_significant and (target_proba > obj[attr_name][attr_idx])
 
     return more_significant
+
+
+def process_gt_scenes(scene: Dict, schema: Dict) -> Dict:
+    """
+    Process the ground truth scenes to make sure they only contains desired attributes and relationships
+    :param scene: ground truth scene
+    :param schema: schema contains the list of attributes and relationships
+    :return:
+    """
+    objects = []
+    for obj in scene['objects']:
+        objects.append({attr_name: obj[attr_name] for attr_name in schema['attributes'].keys()})
+
+    relationships = {rel_name: scene['relationships'][rel_name] for rel_name in schema['relations']}
+
+    return {
+        'objects': objects,
+        'relationships': relationships
+    }
