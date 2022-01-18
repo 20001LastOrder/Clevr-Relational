@@ -18,10 +18,7 @@ def main(args):
     for scene in tqdm(scenes['scenes'], 'Processing scenes...'):
         relationships = {}
         for rel in REL_MAP:
-            ps = {}
-            for source, targets in enumerate(scene['relationships'][rel]):
-                for target, p in targets:
-                    ps[f'{source},{target}'] = p
+            ps = get_normalized_probability(rel, REL_MAP[rel], scene)
             relations = cal_most_prob_scene(ps, len(scene['objects']))
             ops_relations = reverse_relation(relations)
 
@@ -31,6 +28,20 @@ def main(args):
 
     with open(args.output, 'w') as f:
         json.dump(scenes, f)
+
+
+def get_normalized_probability(rel, opposite, scene):
+    ps = {}
+    for source, targets in enumerate(scene['relationships'][rel]):
+        for target, p in targets:
+            ps[f'{source},{target}'] = p
+
+    # normalized the probability
+    for source, targets in enumerate(scene['relationships'][opposite]):
+        for target, p in targets:
+            ps[f'{source},{target}'] = ps[f'{source},{target}'] / (ps[f'{source},{target}'] + p)
+
+    return ps
 
 
 def cal_most_prob_scene(edges, num_objects, eps=1e-50):

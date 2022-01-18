@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 import numpy as np
 
 
@@ -13,16 +13,20 @@ def get_concrete_scene_graph(graph: Dict, schema: Dict, model: str = 'simple') -
         return get_simple_concrete_scene_graph(graph, schema)
 
 
-def get_simple_concrete_scene_graph(graph: Dict, schema) -> Dict:
+def get_simple_concrete_attributes(graph: Dict, schema: Dict) -> List[Dict]:
     objects = []
     attributes = schema['attributes']
-
     # handle objects attributes
     for obj in graph['objects']:
         new_obj = {}
         for attr_name, probs in obj.items():
             new_obj[attr_name] = attributes[attr_name][np.argmax(probs)]
         objects.append(new_obj)
+    return objects
+
+
+def get_simple_concrete_scene_graph(graph: Dict, schema: Dict) -> Dict:
+    objects = get_simple_concrete_attributes(graph, schema)
 
     # handle relationship
     relationships = {}
@@ -33,3 +37,6 @@ def get_simple_concrete_scene_graph(graph: Dict, schema) -> Dict:
         'objects': objects,
         'relationships': relationships
     }
+
+def get_consistent_concrete_scene_graph(graph: Dict, schema: Dict) -> Dict:
+    pass
