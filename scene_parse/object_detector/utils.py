@@ -65,5 +65,10 @@ def process_object_mask(anno, category_id):
 def get_category_map(categories):
     return {cat: idx for idx, cat in enumerate(categories)}
 
-def detector_obj_to_cat() :
-    return lambda obj: 0
+
+def detector_obj_to_cat():
+    return lambda obj: 'object'
+
+
+def detector_obj_to_cat_carla():
+    return lambda obj: obj['category']

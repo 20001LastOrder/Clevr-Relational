@@ -143,7 +143,6 @@ def main(args):
                     })
 
     else:
-        # TODO: Generate dataset for testing
         for i, objects in enumerate(scene_objects):
             num_obj = len(objects)
             for source in range(num_obj):

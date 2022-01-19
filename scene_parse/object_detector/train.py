@@ -6,7 +6,7 @@ from detectron2.engine import DefaultTrainer
 import argparse
 import yaml
 from config import ObjectDetectorTrainConfig
-from utils import get_category_map, detector_obj_to_cat
+from utils import get_category_map, detector_obj_to_cat, detector_obj_to_cat_carla
 
 
 def config_train(cfg, output_path, dataset_train, dataset_test, max_iter=200, num_workers=4, ims_per_batch=2,
@@ -28,7 +28,10 @@ def config_train(cfg, output_path, dataset_train, dataset_test, max_iter=200, nu
 def train_object_detector(detector_config: ObjectDetectorTrainConfig):
     category_map = get_category_map(detector_config.categories)
     # TODO: Extend this to customizable categories
-    obj_to_cat = detector_obj_to_cat()
+    if detector_config.dataset_name == 'carla':
+        obj_to_cat = detector_obj_to_cat_carla()
+    else:
+        obj_to_cat = detector_obj_to_cat()
     dataset = ObjectDetectorDataset(category_map, obj_to_cat, detector_config.train_image_folder,
                                     detector_config.annotation_fp)
     categories = dataset.get_categories()

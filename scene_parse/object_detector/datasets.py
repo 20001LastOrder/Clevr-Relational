@@ -10,11 +10,11 @@ class ObjectDetectorDataset(ABC):
     category_map: Dict[str, int]
 
     # map object to its corresponding category with its attributes
-    obj_to_cat: Callable[[Dict], int]
+    obj_to_cat: Callable[[Dict], str]
     img_height: int
     img_width: int
 
-    def __init__(self, category_map: Dict[str, int], obj_to_cat: Callable[[Dict], int], image_folder,
+    def __init__(self, category_map: Dict[str, int], obj_to_cat: Callable[[Dict], str], image_folder,
                  annotation_fp, img_height: int = 320, img_width: int = 480):
         self.category_map = category_map
         self.obj_to_cat = obj_to_cat
@@ -48,7 +48,7 @@ class ObjectDetectorDataset(ABC):
 
             objs = []
             for anno in scene['objects']:
-                obj = process_object_mask(anno, self.obj_to_cat(anno))
+                obj = process_object_mask(anno, self.category_map[self.obj_to_cat(anno)])
                 objs.append(obj)
             annotated_scene['annotations'] = objs
             annotated_scenes.append(annotated_scene)

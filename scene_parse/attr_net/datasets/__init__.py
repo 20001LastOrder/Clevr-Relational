@@ -4,11 +4,7 @@ from .clevr_object import ObjectAttributeDataset
 
 
 def get_dataset(opt):
-    if opt.dataset == 'clevr':
-        ds = ObjectAttributeDataset(opt)
-    else:
-        raise ValueError('Invalid datsaet %s' % opt.dataset)
-    return ds
+    return ObjectAttributeDataset(opt)
 
 
 def get_test_dataloader(opt):

@@ -1,148 +1,111 @@
-import cv2
 import argparse
 import glob
 from tqdm import tqdm
-import numpy as np
-from typing import List, Optional
 import pycocotools.mask as mask_util
-import json
-import re
-import pandas as pd
-from collections import defaultdict
-from utils import get_gtl_transformer
+from utils import get_gtl_transformer, left_rel, right_rel, before_rel, behind_rel, read_json, write_json
+import numpy as np
+import cv2
 
-COLOR_MAPPING = {
-    'car': (23, 55)
+
+REL_MAP = {
+    'left': left_rel,
+    'right': right_rel,
+    'before': before_rel,
+    'behind': behind_rel
 }
 
-OBJ_TYPE_MAPPING = {
-    24: "vehicle.audi.a2",
-    25: "vehicle.audi.etron",
-    26: "vehicle.audi.tt",
-    28: "vehicle.bmw.grandtourer",
-    29: "vehicle.micro.microlino",
-    31: "vehicle.chevrolet.impala",
-    32: "vehicle.citroen.c3",
-    34: "vehicle.dodge.charger_2020",
-    38: "vehicle.jeep.wrangler_rubicon",
-    39: "vehicle.lincoln.mkz_2017",
-    40: "vehicle.lincoln.mkz_2020",
-    41: "vehicle.mercedes.coupe",
-    42: "vehicle.mercedes.coupe_2020",
-    43: "vehicle.mini.cooper_s",
-    44: "vehicle.mini.cooper_s_2021",
-    45: "vehicle.ford.mustang",
-    46: "vehicle.nissan.micra",
-    50: "vehicle.seat.leon",
-    52: "vehicle.tesla.model3",
-    53: "vehicle.toyota.prius"
+TYPE_IDS = {
+    10: 'vehicle',
+    4: 'pedestrian',
+    18: 'traffic_light'
 }
 
 
-def find_label(encoding: int) -> Optional[str]:
-    for key, (low, high) in COLOR_MAPPING.items():
-        if low <= encoding <= high:
-            return key
-    return None
+def get_obj_with_type(objects, type_id):
+    return [obj for obj in objects if len(obj['semantic_tags']) and obj['semantic_tags'][0] == type_id]
 
 
-def find_ego_obj(objs):
-    for obj in objs:
-        if obj['ego']:
-            return obj
-    return None
+def get_visible_objects(image, objects, type_id, min_pixel):
+    type_objects = get_obj_with_type(objects, type_id)
+    result = []
+    for obj in type_objects:
+        color = np.array([type_id, obj['green'], obj['blue']])
+        segmentation = (image == color).all(axis=2)
 
-
-def find_matching_object(color_id, objs):
-    if color_id not in OBJ_TYPE_MAPPING:
-        print(color_id)
-        return None
-
-    label = OBJ_TYPE_MAPPING[color_id]
-    for obj in objs:
-        if label == obj['vehicle_type']:
-            return obj
-    return None
-
-
-def process_single_image(image, location_objs) -> List:
-    """
-    :param location_objs: A list storing the location information of the objects in the scene
-    :param image: an image with only one channel (w, h, 1)
-    :return: a list contains all included objects in the scene with the bounding box and mask
-    """
-
-    if location_objs is not None:
-        ego_obj = find_ego_obj(location_objs)
-        transformer = get_gtl_transformer([ego_obj['x'], ego_obj['y'], ego_obj['z']], ego_obj['rotation'])
-
-    # find all unique value encoding with assigned labels
-    unique_values = np.unique(image)
-    objects = []
-    for value in unique_values:
-        label = find_label(value)
-        if label is None:
+        if segmentation.sum() < min_pixel:
             continue
-        mask = (image == value)
-        mask = mask_util.encode(np.asfortranarray(mask))
+        mask = mask_util.encode(np.asfortranarray(segmentation))
         mask['counts'] = mask['counts'].decode('ASCII')
+        obj['mask'] = mask
 
-        location = []
-        if location_objs is not None:
-            matching_obj = find_matching_object(value, location_objs)
-            location = list(transformer([matching_obj['x'], matching_obj['y'], matching_obj['z']])) \
-                if matching_obj is not None else []
+        obj['category'] = TYPE_IDS[type_id]
+        result.append(obj)
+    return result
 
-        objects.append({
-            'label': label,
-            'mask':  mask,  # encoding only works with fortran array
-            'location': location
-        })
 
+def get_camera(objects):
+    for obj in objects:
+        if obj['type'] == 'camera':
+            return obj
+
+
+def to_local_coord(objects, transformer):
+    for obj in objects:
+        location = obj['location']
+        obj['location'] = list(transformer([location['x'], location['y'], location['z']]))
     return objects
 
 
-def dataframe_to_dict(df, key_column):
-    df = df.reset_index()
-    dictionary = defaultdict(list)
-    for d in df.to_dict('records'):
-        dictionary[d[key_column]].append(d)
-    return dictionary
+def process_relationships(objects):
+    n = len(objects)
+    relationships = {rel: [[] for _ in range(n)] for rel in REL_MAP.keys()}
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            for rel, check in REL_MAP.items():
+                if check(objects[i]['location'], objects[j]['location']):
+                    relationships[rel][i].append(j)
+                if check(objects[j]['location'], objects[i]['location']):
+                    relationships[rel][j].append(i)
+
+    return relationships
 
 
 def main(args):
-    locations = None
-    if args.location_file:
-        locations = dataframe_to_dict(pd.read_csv(args.location_file), 'frame')
-
-    image_files = glob.glob(f'{args.segmentation_folder}/{args.image_file_pattern}')
+    image_names = glob.glob(f'{args.img_dir}/*.png')
     scenes = []
-    for i, filename in enumerate(tqdm(image_files)):
-        # read the image and only care about the encoding channel
-        image = cv2.imread(filename)[:, :, args.encoding_channel]
-        image_filename = re.split('[/\\\\]', filename)[-1]
-        image_id = int(image_filename.split('.')[0])
-        location_dict = locations[image_id] if locations is not None else None
-        objects = process_single_image(image, location_dict)
-        for obj in objects:
-            if obj['location'] == []:
-                print(f'image_id is {image_id}')
+    for image_path in tqdm(image_names):
+        image_name = image_path.split('\\')[-1].split('.')[0]
+        image = cv2.imread(image_path)[:, :, ::-1]
+        objects = read_json(f'{args.scenes_folder}/{int(image_name)}.json')
+        visible_objects = []
+        for type_id in TYPE_IDS:
+            visible_objects.extend(get_visible_objects(image, objects, type_id, args.min_pixel))
+
+        camera = get_camera(objects)
+        transformer = get_gtl_transformer((camera['location']['x'], camera['location']['y'], camera['location']['z']), camera['rotation']['yaw'])
+        to_local_coord(visible_objects, transformer)
+
+        relationships = process_relationships(visible_objects)
+
         scenes.append({
-            'objects': objects,
-            'image_filename': re.split('[/\\\\]', filename)[-1],  # the filename is absolute, only need the last part
-            'image_index': i
+            'objects': visible_objects,
+            'image_index': int(image_name),
+            'image_filename': f'{image_name}.png',
+            'relationships': relationships
         })
 
-    with open(args.output_path, 'w') as f:
-        json.dump({'scenes': scenes}, f)
+    write_json({'scenes': scenes}, args.output_fp)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--segmentation_folder', type=str, default='data/instance-segmentation/semantic')
-    parser.add_argument("--location_file", type=str)
-    parser.add_argument('--output_path', type=str, default='data/instance-segmentation/scenes.json')
-    parser.add_argument('--image_file_pattern', type=str, default='*.png')
-    parser.add_argument('--encoding_channel', type=int, default=2, choices=[0, 1, 2],
-                        help='index of the encoding channel (0: b, 1: g, 2: r)')
+    # ../data/carla/instance_segmentation/*.png
+    parser.add_argument('--img_dir', required=True, type=str)
+    # ../data/carla/scene_graph/
+    parser.add_argument('--scenes_folder', type=str, required=True)
+    parser.add_argument('--output_fp', type=str, required=True)
+    parser.add_argument('--min_pixel', type=int, default=50, help='minimum number of pixels for an object to be '
+                                                                  'considered as visible')
+
     main(parser.parse_args())
