@@ -61,22 +61,25 @@ def append_score_to_bboxes(bboxes, scores):
 def predict_for_images(image_h5_fp, num_categories: int, predictor: ObjectPredictor) -> Dict:
     images = h5py.File(image_h5_fp, 'r')['images']
     all_boxes, all_segms, all_feats, all_keyps = empty_results(num_categories, len(images))
+    image_features = []
 
     for i, im in enumerate(tqdm(images)):
         # convert the image color channel to the one wrt cv2
-        predictions, features = predictor(im[:, :, ::-1])
+        predictions, box_features, img_feature = predictor(im[:, :, ::-1])
         objects = predictions['instances'].to('cpu')
         classes = objects.pred_classes.numpy()
-        segments = get_segments(objects.pred_masks.numpy())
+        segments = get_segments(objects.pred_masks.squeeze(dim=1).numpy())
         bboxes = append_score_to_bboxes(objects.pred_boxes.tensor, objects.scores)
         extend_results(i, all_boxes, bboxes, classes)
         extend_results(i, all_segms, segments, classes)
-        extend_results(i, all_feats, features.to('cpu').numpy(), classes)
+        extend_results(i, all_feats, box_features.to('cpu').numpy(), classes)
+        image_features.append(img_feature.cpu().numpy())
     return dict(
         all_boxes=all_boxes,
         all_segms=all_segms,
         all_keyps=all_keyps,
         all_feats=all_feats,
+        img_feats=image_features,
         cfg='None'
     )
 

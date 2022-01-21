@@ -1,10 +1,11 @@
 from torch.utils.data import DataLoader
 from .clevr_object import ClevrObjectDataset
 from .clevr_object import ObjectAttributeDataset
+from .feature_objet_dataset import FeatureObjectDataModule
 
 
 def get_dataset(opt):
-    return ObjectAttributeDataset(opt)
+    return FeatureObjectDataModule(opt)
 
 
 def get_test_dataloader(opt):

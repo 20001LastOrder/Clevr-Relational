@@ -1,7 +1,7 @@
-run_dir: "./results/clevr/models/attr_net"
+run_dir: "./results/clevr/models/attr_feature_net"
 dataset: "clevr"
 load_checkpoint_path: null
-ann_path: "./results/clevr/proposals.json"
+ann_path: "./results/clevr/proposals.pkl"
 img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
 attr_names: ["color", "shape", "material", "size"]
 output_dims: [8, 3, 2, 2]

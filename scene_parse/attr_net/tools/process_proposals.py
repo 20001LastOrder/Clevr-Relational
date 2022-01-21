@@ -3,6 +3,7 @@ import argparse
 import pycocotools.mask as mask_util
 from scene_parse.attr_net import utils
 from tqdm import tqdm
+import pickle
 
 
 def find_gt_object(m, gt_masks, align_iou_thresh):
@@ -31,7 +32,7 @@ def main(args):
     proposals = utils.load_pickle(args.proposal_path)
     segms = proposals['all_segms']
     boxes = proposals['all_boxes']
-    # features = proposals['all_feats']
+    features = proposals['all_feats']
 
     n_imgs = len(segms[0])
     n_cats = len(segms)
@@ -52,7 +53,7 @@ def main(args):
                     'image_idx': i,
                     'category_idx': c,
                     'score': float(boxes[c][i][j][4]),
-                    # 'features': features[c][i][j].tolist()
+                    'features': features[c][i][j].tolist()
                 }
                 if scenes is None:  # no ground truth alignment
                     obj_ann['feature_vector'] = None
@@ -92,7 +93,7 @@ def main(args):
     img_ids = [o['image_idx'] for o in all_objs]
     cat_ids = [o['category_idx'] for o in all_objs]
     scores = [o['score'] for o in all_objs]
-    # features = [o['features'] for o in all_objs]
+    features = [o['features'] for o in all_objs]
     feat_vecs = [o['feature_vector'] for o in all_objs] if scenes is not None else []
 
     output_objects = {
@@ -101,7 +102,7 @@ def main(args):
         'category_idxs': cat_ids,
         'feature_vectors': feat_vecs,
         'scores': scores,
-        # 'features': features
+        'features': features
     }
 
     scene_objects = [[None] * len(scene['objects']) for scene in scenes] if scenes is not None else [[] for _ in
@@ -157,12 +158,15 @@ def main(args):
 
     output = {
         'scenes': scene_objects,
+        'img_features': proposals['img_feats'],
         'objects': output_objects,
         'relationships': relationships
     }
 
     print('| saving object annotations to %s' % args.output_path)
-    utils.write_json(output, args.output_path)
+    # utils.write_json(output, args.output_path)
+    with open(args.output_path, 'wb') as f:
+        pickle.dump(output, f, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':

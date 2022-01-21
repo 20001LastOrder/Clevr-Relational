@@ -11,12 +11,13 @@ import pycocotools.mask as mask_util
 import h5py
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
+import pickle
 
 
 class ClevrObjectDataset(Dataset):
     def __init__(self, obj_ann_path, img_dir, attr_names, min_img_id=None, max_img_id=None):
         with open(obj_ann_path) as f:
-            anns = json.load(f)['objects']
+            anns = pickle.load(f)['objects']
 
         min_id = 0
         if min_img_id is not None:

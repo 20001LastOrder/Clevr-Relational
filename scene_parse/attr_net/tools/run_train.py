@@ -1,5 +1,5 @@
 from scene_parse.attr_net.datasets import get_dataset
-from scene_parse.attr_net.model import get_model
+from scene_parse.attr_net.feature_model import get_model
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 import argparse
@@ -21,7 +21,7 @@ def main(args):
         deterministic=False,
         weights_summary=None,
         log_every_n_steps=1,
-        check_val_every_n_epoch=5,
+        check_val_every_n_epoch=10,
         max_epochs=args.max_epochs,
         checkpoint_callback=True,
         callbacks=[checkpoint_callback],

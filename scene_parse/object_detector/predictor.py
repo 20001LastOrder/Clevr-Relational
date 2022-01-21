@@ -54,14 +54,20 @@ class ObjectPredictor:
             inputs = [{"image": image, "height": height, "width": width}]
             
             # get features of backbone model
-            preprocessed_images = self.model.preprocess_image(inputs)
-            features = self.model.backbone(preprocessed_images.tensor)
-            
-            proposals, box_features = self.get_bboxes(preprocessed_images, features)
-            pred_instances, pred_ids = self.get_instances(preprocessed_images, box_features, proposals,
+            preprocessed_image = self.model.preprocess_image(inputs)
+            # features = self.model.backbone(preprocessed_image.tensor)
+            # proposals, _ = self.model.proposal_generator(preprocessed_image, features)
+            # pred_instances, _ = self.model.roi_heads(preprocessed_image, features, proposals)
+            # mask_features = [features[f] for f in self.model.roi_heads.in_features]
+            # mask_features = self.model.roi_heads.mask_pooler(mask_features, [x.pred_boxes for x in pred_instances])
+            # pred_instances = self.model._postprocess(pred_instances, inputs, preprocessed_image.image_sizes)
+            features = self.model.backbone(preprocessed_image.tensor)
+
+            proposals, box_features = self.get_bboxes(preprocessed_image, features)
+            pred_instances, pred_ids = self.get_instances(preprocessed_image, box_features, proposals,
                                                           features, inputs)
 
-            return pred_instances[0], box_features[pred_ids]
+            return pred_instances[0], box_features[pred_ids], features['p6']
 
 
 def get_object_predictor(cfg, weight_path, score_threshold):
