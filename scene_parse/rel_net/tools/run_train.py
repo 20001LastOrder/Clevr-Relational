@@ -21,7 +21,7 @@ def main(args):
         deterministic=False,
         weights_summary=None,
         log_every_n_steps=1,
-        check_val_every_n_epoch=1,
+        check_val_every_n_epoch=5,
         max_epochs=args.max_epochs,
         checkpoint_callback=True,
         callbacks=[checkpoint_callback],

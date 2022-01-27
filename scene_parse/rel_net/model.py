@@ -30,9 +30,9 @@ class RelNetClassificationModule(pl.LightningModule):
     def get_metrics(self, batch):
         sources, labels, _, _, _ = batch
         predictions = self.forward(sources)
-        loss =  self.criterion(predictions, labels)
-        accuracy = self.accuracy(torch.argmax(predictions, dim=1), labels)
-        return loss, accuracy
+        loss = self.criterion(predictions, labels)
+        overall_acc = self.accuracy(torch.argmax(predictions, dim=1), labels)
+        return loss, overall_acc
 
     def training_step(self, batch, batch_nb):
         loss, accuracy = self.get_metrics(batch)
@@ -101,7 +101,6 @@ class RelNetModule(pl.LightningModule):
         self.save_hyperparameters(args.__dict__)
 
         self.criterion = torch.nn.BCELoss()
-        self.accuracy = Accuracy()
 
         # TODO: parameterize other parameters
         self.net = _RelNet(self.hparams.num_rels)
@@ -114,24 +113,40 @@ class RelNetModule(pl.LightningModule):
         sources, targets, labels, _, _, _ = batch
         predictions = self.forward(sources, targets).squeeze()
         loss = self.criterion(predictions, labels.float())
-        accuracy = self.accuracy(torch.round(predictions), labels)
-        return loss, accuracy
+
+        predictions = torch.round(predictions)
+
+        # get axccuracy for each type of the relationship
+        accuracies = (predictions == labels).sum(dim=0) / predictions.shape[0]
+
+        return loss, accuracies
 
     def training_step(self, batch, batch_nb):
-        loss, accuracy = self.get_metrics(batch)
+        loss, accuracies = self.get_metrics(batch)
         self.log('loss/train', loss)
-        self.log(f'acc/train', accuracy)
+        self.log(f'acc_overall/train', accuracies.mean())
+
+        for i, acc in enumerate(accuracies):
+            self.log(f'acc_{i}/train', acc)
+
         return loss
 
     def validation_step(self, batch, batch_nb):
-        loss, accuracy = self.get_metrics(batch)
+        loss, accuracies = self.get_metrics(batch)
         self.log('loss/val', loss)
-        self.log(f'acc/val', accuracy)
+        self.log(f'acc_overall/val', accuracies.mean())
+
+        for i, acc in enumerate(accuracies):
+            self.log(f'acc_{i}/val', acc)
 
     def test_step(self, batch, batch_nb):
-        loss, accuracy = self.get_metrics(batch)
-        self.log(f'acc/test', accuracy)
-        return accuracy
+        loss, accuracies = self.get_metrics(batch)
+        self.log(f'acc_overall/test', accuracies.mean())
+
+        for i, acc in enumerate(accuracies):
+            self.log(f'acc_{i}/test', acc)
+
+        return accuracies
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.net.parameters(), lr=self.hparams.learning_rate)

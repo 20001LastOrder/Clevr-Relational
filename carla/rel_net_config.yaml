@@ -9,7 +9,7 @@ num_workers: 4
 dev: false
 max_epochs: 20
 precision: 32
-split_id: 170
+split_id: 2500
 learning_rate: 0.002
 
 # test configuration

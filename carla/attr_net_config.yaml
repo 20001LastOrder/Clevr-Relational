@@ -9,7 +9,7 @@ batch_size: 50
 num_workers: 4
 
 #training configuration
-split_id: 170
+split_id: 4000
 learning_rate: 0.002
 concat_img: false
 max_epochs: 20

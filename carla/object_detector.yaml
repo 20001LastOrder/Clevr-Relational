@@ -3,11 +3,12 @@ train:
   train_image_folder: "C:/Users/chenp/Documents/github/Clevr-Relational/data/carla/camera"
   annotation_fp: "C:/Users/chenp/Documents/github/Clevr-Relational/data/carla/scenes.json"
   output_dir: "C:/Users/chenp/Documents/github/Clevr-Relational/results/carla/models/object_detector"
-  max_iter: 2400
+  max_iter: 50000
   num_workers: 8
   ims_per_batch: 2
-  base_lr: 0.001
+  base_lr: 0.0001
   batch_size_per_image: 50
   prediction_threshold: 0.5
   categories: ["pedestrian", "vehicle", "traffic_light"]
   dataset_name: 'carla'
+  resume: true

@@ -39,6 +39,12 @@ def get_visible_objects(image, objects, type_id, min_pixel):
         obj['mask'] = mask
 
         obj['category'] = TYPE_IDS[type_id]
+
+        del obj['id']
+        del obj['green']
+        del obj['blue']
+        del obj['rotation']
+
         result.append(obj)
     return result
 
@@ -77,13 +83,14 @@ def main(args):
     for image_path in tqdm(image_names):
         image_name = image_path.split('\\')[-1].split('.')[0]
         image = cv2.imread(image_path)[:, :, ::-1]
-        objects = read_json(f'{args.scenes_folder}/{int(image_name)}.json')
+        objects = read_json(f'{args.scenes_folder}/{image_name}.json')
         visible_objects = []
         for type_id in TYPE_IDS:
             visible_objects.extend(get_visible_objects(image, objects, type_id, args.min_pixel))
 
         camera = get_camera(objects)
-        transformer = get_gtl_transformer((camera['location']['x'], camera['location']['y'], camera['location']['z']), camera['rotation']['yaw'])
+        transformer = get_gtl_transformer((camera['location']['x'], camera['location']['y'], camera['location']['z']),
+                                          camera['rotation']['yaw'])
         to_local_coord(visible_objects, transformer)
 
         relationships = process_relationships(visible_objects)

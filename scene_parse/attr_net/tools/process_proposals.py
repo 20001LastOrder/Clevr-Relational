@@ -13,6 +13,8 @@ def find_gt_object(m, gt_masks, align_iou_thresh):
     candidates = [(k, utils.iou(mask, mask_gt)) for k, mask_gt in enumerate(gt_masks)]
     # sort the candidates descending by the overlap between mask and the ground truth mask
     candidates = sorted(candidates, key=lambda cell: cell[1], reverse=True)
+    if len(candidates) == 0:
+        return -1
     # only return the candidate if the candidate has the overlap with the ground truth mask higher than the threshold
     return candidates[0][0] if candidates[0][1] > align_iou_thresh else -1
 
