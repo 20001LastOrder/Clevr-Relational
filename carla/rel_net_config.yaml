@@ -9,8 +9,8 @@ num_workers: 4
 dev: false
 max_epochs: 20
 precision: 32
-split_id: 2500
-learning_rate: 0.002
+split_id: 3500
+learning_rate: 0.001
 
 # test configuration
 test_ann_path: "./results/clevr_val/proposals.json"

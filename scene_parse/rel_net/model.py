@@ -110,8 +110,8 @@ class RelNetModule(pl.LightningModule):
         return predictions
 
     def get_metrics(self, batch):
-        sources, targets, labels, _, _, _ = batch
-        predictions = self.forward(sources, targets).squeeze()
+        sources, target, labels, _, _, _ = batch
+        predictions = self.forward(sources, target).squeeze()
         loss = self.criterion(predictions, labels.float())
 
         predictions = torch.round(predictions)
@@ -125,7 +125,7 @@ class RelNetModule(pl.LightningModule):
         loss, accuracies = self.get_metrics(batch)
         self.log('loss/train', loss)
         self.log(f'acc_overall/train', accuracies.mean())
-
+        self.log('lr', self.scheduler.get_last_lr()[0])
         for i, acc in enumerate(accuracies):
             self.log(f'acc_{i}/train', acc)
 
@@ -151,8 +151,8 @@ class RelNetModule(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.net.parameters(), lr=self.hparams.learning_rate)
 
-        scheduler = CosineAnnealingLR(optimizer, self.hparams.max_epochs)
-        return [optimizer], [scheduler]
+        self.scheduler = CosineAnnealingLR(optimizer, self.hparams.max_epochs)
+        return [optimizer], [self.scheduler]
 
 
 class _RelNet(nn.Module):
@@ -166,11 +166,13 @@ class _RelNet(nn.Module):
         layers.insert(0, nn.Conv2d(input_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False))
         self.num_features = num_features
         self.feature_extractor = nn.Sequential(*layers)
+
         # self.feature_fc = nn.Linear(512, num_features, bias=True)
 
         self.rnn = nn.RNN(num_features, hidden_size, batch_first=False)
 
-        self.output = nn.Sequential(nn.Linear(hidden_size, num_rels), nn.Sigmoid())
+        self.output = nn.Sequential(nn.Linear(hidden_size, num_rels),
+                                    nn.Sigmoid())
 
     def _feature_extractor(self, x):
         x = self.feature_extractor(x)
@@ -183,5 +185,5 @@ class _RelNet(nn.Module):
 
         combined = torch.cat([source, target], dim=0)
         combined, _ = self.rnn(combined)
-        output = self.output(combined[1])
+        output = self.output(combined[-1])
         return output
