@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-from .clevr_relation import ClevrRelationDataset, RelationDataset
+from .clevr_relation import RelationDataset
 from .clevr_relation import ObjectRelationDataset
 
 

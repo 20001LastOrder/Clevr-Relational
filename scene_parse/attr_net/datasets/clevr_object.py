@@ -63,10 +63,12 @@ class ClevrObjectDataset(Dataset):
 
         mask = mask_util.decode(self.obj_masks[idx])
         bbox = np.argwhere(mask)
-        (ystart, xstart), (ystop, xstop) = bbox.min(0), bbox.max(0) + 1
         mask = torch.Tensor(mask).unsqueeze(dim=0)
         seg = img * mask
-        seg = seg[:, ystart:ystop, xstart:xstop]
+
+        if bbox.size > 0:
+            (ystart, xstart), (ystop, xstop) = bbox.min(0), bbox.max(0) + 1
+            seg = seg[:, ystart:ystop, xstart:xstop]
 
         transform_list = [transforms.Resize((244, 224)),
                           transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]

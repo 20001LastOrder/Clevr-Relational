@@ -11,7 +11,7 @@ max_epochs: 20
 precision: 32
 split_id: 2000
 learning_rate: 0.002
-resume_from_checkpoint: './results/clevr/models/rel_net_output_layer/epoch=5-step=8921.ckpt'
+#resume_from_checkpoint: './results/clevr/models/rel_net_output_layer/epoch=5-step=8921.ckpt'
 
 # test configuration
 test_ann_path: "./results/clevr_val/proposals.json"

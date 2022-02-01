@@ -103,7 +103,7 @@ class RelNetModule(pl.LightningModule):
         self.criterion = torch.nn.BCELoss()
 
         # TODO: parameterize other parameters
-        self.net = _RelNet(self.hparams.num_rels)
+        self.net = _RelNet(self.hparams.num_rels, self.hparams.dropout_p)
 
     def forward(self, source, target):
         predictions = self.net(source, target)
@@ -111,7 +111,7 @@ class RelNetModule(pl.LightningModule):
 
     def get_metrics(self, batch):
         sources, target, labels, _, _, _ = batch
-        predictions = self.forward(sources, target).squeeze()
+        predictions = self.forward(sources, target)
         loss = self.criterion(predictions, labels.float())
 
         predictions = torch.round(predictions)
@@ -156,7 +156,7 @@ class RelNetModule(pl.LightningModule):
 
 
 class _RelNet(nn.Module):
-    def __init__(self, num_rels, input_channels=4, num_features=512, hidden_size=128):
+    def __init__(self, num_rels, dropout_p, input_channels=4, num_features=512, hidden_size=128):
         super(_RelNet, self).__init__()
 
         resnet = models.resnet34(pretrained=True)
@@ -169,9 +169,9 @@ class _RelNet(nn.Module):
 
         # self.feature_fc = nn.Linear(512, num_features, bias=True)
 
-        self.rnn = nn.RNN(num_features, hidden_size, batch_first=False)
+        self.rnn = nn.Sequential(nn.Dropout(dropout_p), nn.RNN(num_features, hidden_size, batch_first=False))
 
-        self.output = nn.Sequential(nn.Linear(hidden_size, num_rels),
+        self.output = nn.Sequential(nn.Dropout(dropout_p), nn.Linear(hidden_size, num_rels),
                                     nn.Sigmoid())
 
     def _feature_extractor(self, x):
