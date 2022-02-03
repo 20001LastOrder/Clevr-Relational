@@ -6,8 +6,7 @@ from detectron2.engine import DefaultTrainer
 import argparse
 import yaml
 from config import ObjectDetectorTrainConfig
-from utils import get_category_map, detector_obj_to_cat, detector_obj_to_cat_carla
-
+from datasets import set_object_recognition_dataset
 
 def config_train(cfg, output_path, dataset_train, dataset_test, max_iter=200, num_workers=4, ims_per_batch=2,
                  base_lr=0.001, batch_size_per_image=50):
@@ -26,18 +25,7 @@ def config_train(cfg, output_path, dataset_train, dataset_test, max_iter=200, nu
 
 
 def train_object_detector(detector_config: ObjectDetectorTrainConfig):
-    category_map = get_category_map(detector_config.categories)
-    # TODO: Extend this to customizable categories
-    if detector_config.dataset_name == 'carla':
-        obj_to_cat = detector_obj_to_cat_carla()
-    else:
-        obj_to_cat = detector_obj_to_cat()
-    dataset = ObjectDetectorDataset(category_map, obj_to_cat, detector_config.train_image_folder,
-                                    detector_config.annotation_fp)
-    categories = dataset.get_categories()
-
-    DatasetCatalog.register(detector_config.dataset_name, dataset.dataset_loader())
-    MetadataCatalog.get(detector_config.dataset_name).set(thing_classes=categories)
+    categories = set_object_recognition_dataset(detector_config)
 
     cfg = get_pretrained_mask_rcnn(detector_config.dataset_name, len(categories))
     config_train(cfg, detector_config.output_dir, detector_config.dataset_name, None, detector_config.max_iter,

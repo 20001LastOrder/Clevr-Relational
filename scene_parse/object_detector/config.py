@@ -1,5 +1,5 @@
 class ObjectDetectorTrainConfig:
-    train_image_folder: str
+    image_folder: str
     annotation_fp: str
     dataset_name: str
     output_dir: str
@@ -11,10 +11,10 @@ class ObjectDetectorTrainConfig:
     batch_size_per_image: int
     skip: bool
 
-    def __init__(self, train_image_folder, annotation_fp, output_dir, categories, dataset_name='clevr', resume=True, max_iter=200,
+    def __init__(self, image_folder, annotation_fp, output_dir, categories, dataset_name='clevr', resume=True, max_iter=200,
                  num_workers=8, ims_per_batch=2, base_lr=0.01, batch_size_per_image=50, skip=False,
                  prediction_threshold=0.5):
-        self.train_image_folder = train_image_folder
+        self.image_folder = image_folder
         self.annotation_fp = annotation_fp
         self.dataset_name = dataset_name
         self.output_dir = output_dir

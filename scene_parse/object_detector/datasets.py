@@ -1,4 +1,6 @@
-from .utils import preprocess_rle, rle_masks_to_boxes, process_object_mask
+from detectron2.data import DatasetCatalog, MetadataCatalog
+
+from utils import process_object_mask, detector_obj_to_cat_carla, detector_obj_to_cat, get_category_map
 import os
 import json
 from tqdm import tqdm
@@ -110,3 +112,19 @@ class CarlaDataset(ObjectDetectorDataset):
 
     def obj_to_category(self, category_map: Dict[str, int]) -> Callable[[Dict], int]:
         return lambda obj: 0
+
+
+def set_object_recognition_dataset(detector_config):
+    category_map = get_category_map(detector_config.categories)
+    # TODO: Extend this to customizable categories
+    if 'carla' in detector_config.dataset_name:
+        obj_to_cat = detector_obj_to_cat_carla()
+    else:
+        obj_to_cat = detector_obj_to_cat()
+    dataset = ObjectDetectorDataset(category_map, obj_to_cat, detector_config.image_folder,
+                                    detector_config.annotation_fp)
+    categories = dataset.get_categories()
+
+    DatasetCatalog.register(detector_config.dataset_name, dataset.dataset_loader())
+    MetadataCatalog.get(detector_config.dataset_name).set(thing_classes=categories)
+    return categories

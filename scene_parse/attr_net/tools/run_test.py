@@ -54,7 +54,7 @@ def main(opt):
                 attr_name = attr_names[j]
                 if not opt.use_proba:
                     obj[attr_name] = attr_map[attr_name][attribute]
-                else:
+            else:
                     obj[attr_name] = attribute
 
             scenes[img_id]['objects'].append(obj)

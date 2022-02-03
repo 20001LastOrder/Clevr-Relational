@@ -1,9 +1,23 @@
 train:
   skip: false
-  train_image_folder: "G:/My Drive/Research/data/Clevr_mini/images"
+  image_folder: "G:/My Drive/Research/data/Clevr_mini/images"
   annotation_fp: "G:/My Drive/Research/data/Clevr_mini/CLEVR_mini_coco_anns.json"
   output_dir: "./results/clevr/models/object_detector"
   max_iter: 1200
+  num_workers: 8
+  ims_per_batch: 2
+  base_lr: 0.001
+  batch_size_per_image: 50
+  prediction_threshold: 0.5
+  categories: ["object"]
+
+test:
+  skip: false
+  image_folder: "G:/My Drive/Research/data/Clevr_mini/images"
+  annotation_fp: "G:/My Drive/Research/data/Clevr_mini/CLEVR_mini_coco_anns.json"
+  output_dir: "./results/clevr/models/object_detector"
+  max_iter: 1200
+  dataset_name: 'clevr_test'
   num_workers: 8
   ims_per_batch: 2
   base_lr: 0.001

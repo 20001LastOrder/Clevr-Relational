@@ -40,7 +40,6 @@ def get_visible_objects(image, objects, type_id, min_pixel):
 
         obj['category'] = TYPE_IDS[type_id]
 
-        del obj['id']
         del obj['green']
         del obj['blue']
         del obj['rotation']
@@ -80,7 +79,7 @@ def process_relationships(objects):
 def main(args):
     image_names = glob.glob(f'{args.img_dir}/*.png')
     scenes = []
-    for image_path in tqdm(image_names):
+    for image_path in tqdm(image_names[:4500]):
         image_name = image_path.split('\\')[-1].split('.')[0]
         image = cv2.imread(image_path)[:, :, ::-1]
         objects = read_json(f'{args.scenes_folder}/{image_name}.json')

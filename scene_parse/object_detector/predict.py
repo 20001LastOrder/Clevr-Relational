@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Dict
 from tqdm import tqdm
 from predictor import ObjectPredictor, get_object_predictor
 import numpy as np
@@ -7,6 +7,12 @@ import h5py
 from models import get_pretrained_mask_rcnn
 import pickle
 import argparse
+from detectron2.evaluation import COCOEvaluator, inference_on_dataset
+from detectron2.data import build_detection_test_loader
+import yaml
+
+from config import ObjectDetectorTrainConfig
+from datasets import set_object_recognition_dataset
 
 
 def empty_results(num_classes, num_images):
@@ -81,14 +87,29 @@ def predict_for_images(image_h5_fp, num_categories: int, predictor: ObjectPredic
     )
 
 
+def test(cfg, model, config):
+    set_object_recognition_dataset(config)
+    evaluator = COCOEvaluator(config.dataset_name, output_dir='.')
+    val_loader = build_detection_test_loader(cfg, config.dataset_name)
+
+    print(inference_on_dataset(model, val_loader, evaluator))
+
+
 def main(args):
+
     cfg = get_pretrained_mask_rcnn(args.dataset_name, args.num_categories)
     predictor = get_object_predictor(cfg, args.weight_path, args.score_threshold)
 
-    results = predict_for_images(args.image_h5, args.num_categories, predictor)
+    if args.test:
+        with open(args.config_fp) as f:
+            data_map = yaml.safe_load(f)
+        config = ObjectDetectorTrainConfig(**data_map['test'])
+        test(cfg, predictor.model, config)
+    else:
+        results = predict_for_images(args.image_h5, args.num_categories, predictor)
 
-    with open(args.output_fp, 'wb') as f:
-        pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
+        with open(args.output_fp, 'wb') as f:
+            pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
@@ -100,5 +121,9 @@ if __name__ == '__main__':
     parser.add_argument('--num_categories', type=int, default=1)
     parser.add_argument('--score_threshold', type=float, default=0.5)
 
+    parser.add_argument('--test', default=False, action='store_true')
+    parser.add_argument('--config_fp', type=str, required=False)
+    arguments = parser.parse_args()
+
     args = parser.parse_args()
-    main(args)
+    main(args, )

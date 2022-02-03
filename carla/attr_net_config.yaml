@@ -1,7 +1,7 @@
-run_dir: "./results/carla/models/attr_net"
+run_dir: "./results/carla_50p/models/attr_net"
 dataset: "carla"
 load_checkpoint_path: null
-ann_path: "./results/carla/proposals.json"
+ann_path: "./results/carla_50p/proposals.json"
 img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/carla/images.h5"
 attr_names: ["type"]
 output_dims: [4]
@@ -18,8 +18,8 @@ dev: False
 
 # test configuration
 test_img_h5: "./data/carla/images_test.h5"
-test_ann_path: "./results/carla_test/proposals.json"
-model_path: './results/carla/models/attr_net/model.ckpt'
+test_ann_path: "./results/carla_test_50p/proposals.json"
+model_path: './results/carla_50p/models/attr_net/model.ckpt'
 attr_map_path: './data/carla/schema.json'
 use_proba: true
-output_path: './results/carla_test/attr_scenes.json'
+output_path: './results/carla_test_50p/attr_scenes.json'

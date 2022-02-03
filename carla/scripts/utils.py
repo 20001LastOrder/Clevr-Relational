@@ -30,7 +30,8 @@ def get_gtl_transformer(coords, rotation):
     :param rotation: rotation on the z axis in degree
     :return: a function that transforms global coordinate to local coordinate of the provided axis
     """
-    mat = get_rotation_matrix_z(rotation) @ get_transformation_matrix(coords)
+    mat = get_rotation_matrix_z(rotation)
+    mat[:-1, -1] += coords
     inverse = inv(mat)
     return lambda c: (inverse @ np.array(np.concatenate((c, [1]))))[:len(c)]
 
