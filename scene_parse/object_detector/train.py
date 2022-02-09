@@ -8,6 +8,7 @@ import yaml
 from config import ObjectDetectorTrainConfig
 from datasets import set_object_recognition_dataset
 
+
 def config_train(cfg, output_path, dataset_train, dataset_test, max_iter=200, num_workers=4, ims_per_batch=2,
                  base_lr=0.001, batch_size_per_image=50):
     # TODO: achieve the same configuration with detectron2 configuration file
@@ -18,6 +19,10 @@ def config_train(cfg, output_path, dataset_train, dataset_test, max_iter=200, nu
     cfg.DATALOADER.NUM_WORKERS = num_workers
     cfg.SOLVER.IMS_PER_BATCH = ims_per_batch
     cfg.SOLVER.BASE_LR = base_lr
+    cfg.SOLVER.LR_SCHEDULER_NAME = "WarmupCosineLR"
+    cfg.SOLVER.BASE_LR_END = 0.0
+    cfg.SOLVER.MOMENTUM = 0.9
+    cfg.SOLVER.WEIGHT_DECAY = 0.0001
     cfg.SOLVER.MAX_ITER = max_iter
     cfg.SOLVER.STEPS = []  # do not decay learning rate yet
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = batch_size_per_image

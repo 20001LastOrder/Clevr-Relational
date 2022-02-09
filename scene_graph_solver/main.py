@@ -7,7 +7,7 @@ import numpy as np
 
 REL_MAP = {
     'left': 'right',
-    'before': 'behind'
+    'front': 'behind'
 }
 
 
