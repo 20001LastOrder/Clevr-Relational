@@ -9,15 +9,16 @@ num_workers: 4
 dev: false
 max_epochs: 20
 precision: 32
-split_id: 2000
+train_size: 3600
 learning_rate: 0.002
+model_type: "scene_based"
 #resume_from_checkpoint: './results/clevr/models/rel_net_output_layer/epoch=5-step=8921.ckpt'
 
 # test configuration
-test_ann_path: "./results/clevr_val/proposals.json"
+test_ann_path: "./results/clevr_val_v2/proposals.json"
 test_img_h5: "G:/My Drive/Research/data/Original/images.h5"
 label_names: ["left", "right", "front", "behind"]
-model_path: './results/clevr/models/rel_net_output_layer/epoch=9-step=14869.ckpt'
-scenes_path: './results/clevr_val/attr_scenes.json'
+model_path: './results/clevr/models/rel_net_output_layer/model.ckpt'
+scenes_path: './results/clevr_val_v2/attr_scenes.json'
 use_proba: true
-output_path: './results/clevr_val/rel_scenes.json'
+output_path: './results/clevr_val_v2/rel_scenes.json'

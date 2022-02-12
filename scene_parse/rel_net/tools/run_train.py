@@ -1,5 +1,5 @@
 from scene_parse.rel_net.datasets import get_dataset
-from scene_parse.rel_net.model import get_model
+from scene_parse.rel_net.models import get_model
 from scene_parse.rel_net.config import RelNetConfiguration
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint

@@ -9,17 +9,18 @@ batch_size: 50
 num_workers: 4
 
 #training configuration
-split_id: 3500
+split_id: 3600
 learning_rate: 0.002
 concat_img: false
-max_epochs: 20
+max_epochs: 200
 precision: 32
 dev: False
+desc: "Run attribute extractor with more epoches"
 
 # test configuration
 test_img_h5: "G:/My Drive/Research/data/Original/images.h5"
-test_ann_path: "./results/clevr_val/proposals.json"
+test_ann_path: "./results/clevr_val_v2/proposals.json"
 model_path: './results/clevr/models/attr_net/model.ckpt'
 attr_map_path: 'G:/My Drive/Research/data/Clevr_mini/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr_val/attr_scenes.json'
+output_path: './results/clevr_val_v2/attr_scenes.json'

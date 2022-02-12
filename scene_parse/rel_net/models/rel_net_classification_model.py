@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 
 PYTORCH_VER = torch.__version__
 
+
 class RelNetClassificationModule(pl.LightningModule):
     def __init__(self, args):
         super().__init__()
@@ -88,11 +89,6 @@ class _Net(nn.Module):
         s = s.view(s.size(0), -1)
 
         return self.output_layer(s)
-
-
-def get_model(opt):
-    model = RelNetModule(opt)
-    return model
 
 
 class RelNetModule(pl.LightningModule):

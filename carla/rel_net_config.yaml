@@ -9,9 +9,11 @@ num_workers: 4
 dev: false
 max_epochs: 30
 precision: 32
-train_size: 3500
+train_size: 4050
 learning_rate: 0.001
 dropout_p: 0.1
+train_type: "scene_based"
+
 
 # test configuration
 test_ann_path: "./results/carla_test_50p/proposals.json"

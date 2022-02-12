@@ -6,7 +6,8 @@ class RelNetConfiguration:
                  dev: bool = False, max_epochs: int = 20, precision: int = 32, batch_size: int = 64,
                  num_workers: int = 4, learning_rate: float = 0.002, resume_from_checkpoint=None,
                  label_names: List = None, model_path: str = '', scenes_path: str = '', use_proba: bool = True,
-                 output_path: str = '', test_ann_path: str = '', test_img_h5: str = '', dropout_p: float = 0):
+                 output_path: str = '', test_ann_path: str = '', test_img_h5: str = '', dropout_p: float = 0,
+                 model_type: str = 'normal'):
         self.run_dir = run_dir
         self.dev = dev
         self.max_epochs = max_epochs
@@ -20,6 +21,8 @@ class RelNetConfiguration:
         self.learning_rate = learning_rate
         self.resume_from_checkpoint = resume_from_checkpoint
         self.dropout_p = dropout_p
+
+        self.model_type = model_type
 
         # test configs
         self.label_names = label_names
