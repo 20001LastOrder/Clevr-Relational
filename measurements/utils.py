@@ -191,3 +191,43 @@ def error_classification_for_scenes(predicted_scenes: List[Dict], gt_scenes: Lis
         error_maps.append(error_map)
 
     return error_maps
+
+
+def dag_constraint(adj: np.matrix):
+    """
+    measure the number of violations of  the dag constraint
+    :param adj: the adjacency matrix
+    :return: number of violations (number of cycles from a node to itself at all path length)
+    """
+
+    cumulator = adj
+    result = adj
+    n = adj.shape[-1]
+
+    for i in range(1, n):
+        cumulator = adj @ cumulator
+        result = result + cumulator
+    return np.multiply(result, np.eye(n)).sum()
+
+
+def anti_symmetry_constraint(adj: np.matrix):
+    """
+    measure the number of anti_symmetry constraint violation
+    :param adj: the adjacency matrix
+    :return:
+    """
+    anti_symmetry = ~np.logical_xor(adj, adj.transpose((0, 2, 1)))
+    filter_mat = 1 - np.eye(adj.shape[-1])
+
+    return np.multiply(anti_symmetry, filter_mat).sum() / 2  # each violation is counted twice
+
+
+def construct_adj(relationships, num_nodes):
+    adj = np.zeros((len(relationships), num_nodes, num_nodes))
+
+    for i, (rel, pairs) in enumerate(relationships.items()):
+        for source, targets in enumerate(pairs):
+            for target in targets:
+                adj[i, source, target] = 1
+
+    return adj

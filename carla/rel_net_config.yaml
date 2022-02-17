@@ -1,4 +1,4 @@
-run_dir: "./results/carla_50p/models/rel_net"
+run_dir: "./results/carla_50p/models/rel_net_constraint"
 ann_path: "./results/carla_50p/proposals.json"
 img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/carla/images.h5"
 num_rels: 4
@@ -12,8 +12,8 @@ precision: 32
 train_size: 4050
 learning_rate: 0.001
 dropout_p: 0.1
-train_type: "scene_based"
-
+model_type: "scene_based"
+include_constraint_loss: true
 
 # test configuration
 test_ann_path: "./results/carla_test_50p/proposals.json"
