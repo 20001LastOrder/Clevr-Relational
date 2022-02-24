@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import math
 from scene_parse.rel_net.constraints import build_adjacency_matrix
-from scene_parse.rel_net.constraints.constraint_loss import get_dag_constraint, get_anti_symmetry_constraint
+from scene_parse.rel_net.constraints.constraint_loss import get_deduct_constraint, get_anti_symmetry_constraint
 
 
 class SceneBasedRelNetModule(pl.LightningModule):
@@ -16,32 +16,42 @@ class SceneBasedRelNetModule(pl.LightningModule):
 
         self.criterion = torch.nn.BCELoss()
 
-        constraints = [get_dag_constraint(epsilon=0.05), get_anti_symmetry_constraint(epsilon=-0.5)]
-        self.logic_criteria = lambda a: (constraints[0].cal_loss(a) + constraints[1].cal_loss(a)) / torch.numel(a)
+        constraints = [get_deduct_constraint([(0, 1), (2, 3)]), get_anti_symmetry_constraint(epsilon=-0.5)]
+        self.logic_criteria = lambda a: (constraints[0](a) + constraints[1](a)) / torch.numel(a)
 
         self.net = _RelNet(self.hparams.num_rels, self.hparams.dropout_p)
 
-    def forward(self, data, sources, targets, labels):
-        predictions = self.net(data, sources, targets, labels)
+    def forward(self, data, sources, targets):
+        predictions = self.net(data, sources, targets)
         return predictions
 
     def get_metrics(self, batch):
-        data, sources, targets, labels, _ = batch
-        data, sources, targets = data.squeeze(dim=0), sources.squeeze(dim=0), targets.squeeze(dim=0)
-        labels = labels.squeeze(dim=0)
+        data, sources, targets, labels, _, (nums_obj, nums_edges), _ = batch
+        # data, sources, targets = data.squeeze(dim=0), sources.squeeze(dim=0), targets.squeeze(dim=0)
+        # labels = labels.squeeze(dim=0)
+        n = data.shape[0]
+        accuracies = torch.zeros((n, labels.shape[2]))  # accuracies for each label type
+        losses = torch.zeros(n)
+        constraint_losses = torch.zeros(n)
 
-        predictions = self.forward(data, sources, targets, labels)
-        loss = self.criterion(predictions, labels.float())
+        for i in range(n):
+            num_obj = nums_obj[i].item()
+            num_edges = nums_edges[i].item()
+            data_i = data[i][:num_obj]
+            sources_i = sources[i][:num_edges].long()
+            targets_i = targets[i][:num_edges].long()
+            labels_i = labels[i][:num_edges].long()
 
-        adj = build_adjacency_matrix(predictions, int(math.sqrt(sources.shape[0])))
-        constraint_loss = self.logic_criteria(adj)
+            predictions = self.forward(data_i, sources_i, targets_i)
+            losses[i] = self.criterion(predictions, labels_i.float())
 
-        predictions = torch.round(predictions)
+            adj = build_adjacency_matrix(predictions, int(math.sqrt(sources_i.shape[0])))
+            constraint_losses[i] = self.logic_criteria(adj)
 
-        # get axccuracy for each type of the relationship
-        accuracies = (predictions == labels).sum(dim=0) / predictions.shape[0]
+            predictions = torch.round(predictions)
+            accuracies[i] = (predictions == labels_i).sum(dim=0) / predictions.shape[0]
 
-        return loss, constraint_loss, accuracies
+        return losses.mean(), constraint_losses.mean(), accuracies.mean(dim=0)
 
     def training_step(self, batch, batch_nb):
         loss, constraint_loss, accuracies = self.get_metrics(batch)
@@ -52,7 +62,11 @@ class SceneBasedRelNetModule(pl.LightningModule):
         for i, acc in enumerate(accuracies):
             self.log(f'acc_{i}/train', acc)
 
-        return 0.8 * loss + 0.2 * constraint_loss if self.hparams.include_constraint_loss else loss
+        # labelled = batch[-1].item()
+
+        # return loss if labelled else constraint_loss
+        return 0.4 * loss + 0.6 * constraint_loss if self.hparams.include_constraint_loss else loss
+
 
     def validation_step(self, batch, batch_nb):
         loss, constraint_loss, accuracies = self.get_metrics(batch)
@@ -102,7 +116,7 @@ class _RelNet(nn.Module):
         x = x.view(x.size(0), -1)
         return x
 
-    def forward(self, objs, sources, targets, labels):
+    def forward(self, objs, sources, targets):
         features = self._feature_extractor(objs)
         relations = torch.cat([features[sources], features[targets]], dim=1)
         # source = features[sources].unsqueeze(0)

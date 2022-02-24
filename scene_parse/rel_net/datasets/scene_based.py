@@ -23,6 +23,7 @@ class SceneBasedRelationDataset(Dataset):
         self.dataset = defaultdict(list)
         self.img_dir = img_dir
         self.noise_ratio = noise_ratio
+        self.num_rels = num_rels
 
         # cannot use scenes directly since the object detector may not detected all objects
         for rel in anns['relationships']:
@@ -48,6 +49,11 @@ class SceneBasedRelationDataset(Dataset):
                           transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]
         self._transform = transforms.Compose(transform_list)
 
+        # assume only 10% of data is labeled
+        index = [i for i, _ in self.dataset]
+        np.random.shuffle(index)
+        self.labelled = set(index[: int(len(index) * 0.1)])
+
     def random_flip(self, edges):
         n = len(edges)
         indices = list(range(n))
@@ -71,23 +77,29 @@ class SceneBasedRelationDataset(Dataset):
 
         img_id = self.dataset[idx][0]
         edges = self.dataset[idx][1]
-        sources = torch.tensor([rel[0] for rel in edges])
-        targets = torch.tensor([rel[1] for rel in edges])
-        labels = torch.tensor([rel[2] for rel in edges])
+        max_obj = 12
+
+        sources = torch.empty((max_obj ** 2))
+        targets = torch.empty((max_obj ** 2))
+        labels = torch.empty((max_obj ** 2, self.num_rels))
+
+        num_edges = len(edges)
+        sources[:num_edges] = torch.tensor([rel[0] for rel in edges])
+        targets[:num_edges] = torch.tensor([rel[1] for rel in edges])
+        labels[:num_edges] = torch.tensor([rel[2] for rel in edges])
 
         img = self._transform(self.dataset_h5[img_id])
+        num_obj = len(self.scenes[img_id])
 
-        data = []
-        for obj in self.scenes[img_id]:
+        data = torch.empty((max_obj, 4, 224, 224))
+        for i, obj in enumerate(self.scenes[img_id]):
             if obj is not None:
                 mask = self.resize_transformer(np.expand_dims(mask_util.decode(obj['mask']).astype(int), axis=2))
             else:
                 mask = torch.zeros((1, img.shape[1], img.shape[2]))
-            data.append(torch.unsqueeze(torch.cat([img, mask], dim=0), dim=0))
+            data[i] = torch.cat([img, mask], dim=0)
 
-        data = torch.cat(data, dim=0)
-
-        return data, sources, targets, labels, img_id
+        return data, sources, targets, labels, img_id, (num_obj, num_edges), True  #if img_id in self.labelled else False
 
 
 class SceneBasedObjectRelationDataset(pl.LightningDataModule):
@@ -108,6 +120,7 @@ class SceneBasedObjectRelationDataset(pl.LightningDataModule):
                                             noise_ratio=self.args.noise_ratio)
         dataloader = DataLoader(
             dataset,
+            batch_size=self.args.batch_size,
             num_workers=self.args.num_workers,
             shuffle=True,
             pin_memory=True
@@ -118,6 +131,7 @@ class SceneBasedObjectRelationDataset(pl.LightningDataModule):
         dataset = SceneBasedRelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.test_idx)
         dataloader = DataLoader(
             dataset,
+            batch_size=self.args.batch_size,
             num_workers=self.args.num_workers,
             shuffle=False,
             pin_memory=True

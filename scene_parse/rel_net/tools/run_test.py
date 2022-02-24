@@ -11,7 +11,7 @@ import json
 
 
 def predict_pair_based(opt, model, dataloader, scenes, relation_names):
-    for sources, targets, _, source_ids, target_ids, img_ids in tqdm(dataloader, 'processing objects batches'):
+    for sources, targets, _, source_ids, target_ids, img_ids, _ in tqdm(dataloader, 'processing objects batches'):
         sources = sources.to('cuda')
         targets = targets.to('cuda')
         preds = model.forward(sources, targets)
@@ -31,15 +31,17 @@ def predict_pair_based(opt, model, dataloader, scenes, relation_names):
 
 
 def predict_scene_based(opt, model, dataloader, scenes, relation_names):
-    for data, sources, targets, labels, image_id in tqdm(dataloader, 'processing objects batches'):
-        data = data.squeeze(dim=0).to('cuda')
-        sources = sources.squeeze(dim=0).to('cuda')
-        targets = targets.squeeze(dim=0).to('cuda')
-        labels = labels.squeeze(dim=0).to('cuda')
+    for data, sources, targets, labels, image_id, (num_nodes, num_edges), _ in tqdm(dataloader, 'processing objects batches'):
+        num_nodes = num_nodes.item()
+        num_edges = num_edges.item()
+
+        data = data[:num_nodes].squeeze(dim=0).to('cuda')
+        sources = sources[:, :num_edges].squeeze(dim=0).to('cuda').long()
+        targets = targets[:, :num_edges].squeeze(dim=0).to('cuda').long()
 
         img_id = image_id.item()
 
-        preds = model.forward(data, sources, targets, labels)
+        preds = model.forward(data, sources, targets)
 
         if not opt.use_proba:
             preds = torch.round(preds).int().cpu().numpy()

@@ -2,25 +2,25 @@ run_dir: "./results/clevr/models/rel_noisy"
 ann_path: "./results/clevr/proposals.json"
 img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
 num_rels: 4
-batch_size: 48
+batch_size: 8
 num_workers: 4
 
 # training configuration
 dev: false
-max_epochs: 10
+max_epochs: 24
 precision: 32
 train_size: 3600
 learning_rate: 0.002
 model_type: "scene_based"
 noise_ratio: 0
-include_constraint_loss: false
+include_constraint_loss: true
 #resume_from_checkpoint: './results/clevr/models/rel_net_output_layer/epoch=5-step=8921.ckpt'
 
 # test configuration
-test_ann_path: "./results/clevr_val_v2/proposals.json"
-test_img_h5: "G:/My Drive/Research/data/Original/images.h5"
+test_ann_path: "./results/clevr_1.0/proposals.json"
+test_img_h5: "G:/My Drive/Research/Fault-Tolerant Neural Networks/Clevr/data/CLEVR_v1.0/images/test_images.h5"
 label_names: ["left", "right", "front", "behind"]
-model_path: './results/clevr/models/rel_net_output_layer/model_constraints.ckpt'
-scenes_path: './results/clevr_val_v2/attr_scenes.json'
+model_path: './results/clevr/models/rel_net_output_layer/model.ckpt'
+scenes_path: './results/clevr_1.0/attr_scenes.json'
 use_proba: true
-output_path: './results/clevr_val_v2/rel_scenes_constraints.json'
+output_path: './results/clevr_1.0/rel_scenes.json'
