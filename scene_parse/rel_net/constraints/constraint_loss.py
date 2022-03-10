@@ -80,3 +80,11 @@ def get_dag_constraint(epsilon=0) -> ConstraintLoss:
         return result.mul(torch.eye(adj.shape[-1], device=result.device))
 
     return ThresholdConstraint(epsilon, dag)
+
+
+def get_transitivity_constraint(epsilon=0.5, expected=1):
+    def transitivity(adj: torch.Tensor):
+        adj_sq = adj @ adj
+        return torch.masked_select(torch.relu(-adj + epsilon), adj_sq >= expected).sum()
+
+    return transitivity

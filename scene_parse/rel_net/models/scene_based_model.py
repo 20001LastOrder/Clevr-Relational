@@ -1,12 +1,14 @@
+import math
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.models as models
 import pytorch_lightning as pl
 from torch.optim.lr_scheduler import CosineAnnealingLR
-import math
-from scene_parse.rel_net.constraints import build_adjacency_matrix
-from scene_parse.rel_net.constraints.constraint_loss import get_deduct_constraint, get_anti_symmetry_constraint
+from scene_parse.rel_net.constraints import build_adjacency_matrix, adj_probability
+from scene_parse.rel_net.constraints.constraint_loss import get_deduct_constraint, get_anti_symmetry_constraint,\
+    get_transitivity_constraint
 
 
 class SceneBasedRelNetModule(pl.LightningModule):
@@ -16,10 +18,12 @@ class SceneBasedRelNetModule(pl.LightningModule):
 
         self.criterion = torch.nn.BCELoss()
 
-        constraints = [get_deduct_constraint([(0, 1), (2, 3)]), get_anti_symmetry_constraint(epsilon=-0.5)]
-        self.logic_criteria = lambda a: (constraints[0](a) + constraints[1](a)) / torch.numel(a)
+        constraints = [get_deduct_constraint([(0, 1), (2, 3)]), get_anti_symmetry_constraint(epsilon=-0.5),
+                       get_transitivity_constraint()]
+        self.logic_criteria = lambda a: (constraints[0](a) + constraints[1](a) + constraints[2](a)) / torch.numel(a)
 
-        self.net = _RelNet(self.hparams.num_rels, self.hparams.dropout_p)
+        num_rels = self.hparams.num_rels if self.hparams.used_rels is None else len(self.hparams.used_rels)
+        self.net = _RelNet(num_rels, self.hparams.dropout_p, self.hparams.use_sigmoid)
 
     def forward(self, data, sources, targets):
         predictions = self.net(data, sources, targets)
@@ -34,6 +38,7 @@ class SceneBasedRelNetModule(pl.LightningModule):
         losses = torch.zeros(n)
         constraint_losses = torch.zeros(n)
 
+        # TODO: Find a better way to handle multi scenes in one epoch
         for i in range(n):
             num_obj = nums_obj[i].item()
             num_edges = nums_edges[i].item()
@@ -43,13 +48,19 @@ class SceneBasedRelNetModule(pl.LightningModule):
             labels_i = labels[i][:num_edges].long()
 
             predictions = self.forward(data_i, sources_i, targets_i)
-            losses[i] = self.criterion(predictions, labels_i.float())
 
-            adj = build_adjacency_matrix(predictions, int(math.sqrt(sources_i.shape[0])))
+            adj_size = int(math.sqrt(predictions.shape[0]))
+            adj = build_adjacency_matrix(predictions, adj_size)
+
+            if not self.hparams.use_sigmoid:
+                adj = adj_probability(adj)
+            adj_gt = build_adjacency_matrix(labels_i, adj_size)
+
+            losses[i] = self.criterion(adj, adj_gt.float())
             constraint_losses[i] = self.logic_criteria(adj)
 
-            predictions = torch.round(predictions)
-            accuracies[i] = (predictions == labels_i).sum(dim=0) / predictions.shape[0]
+            adj = torch.round(adj)
+            accuracies[i] = (adj == adj_gt).sum(dim=[1, 2]) / predictions.shape[0]
 
         return losses.mean(), constraint_losses.mean(), accuracies.mean(dim=0)
 
@@ -66,7 +77,6 @@ class SceneBasedRelNetModule(pl.LightningModule):
 
         # return loss if labelled else constraint_loss
         return 0.4 * loss + 0.6 * constraint_loss if self.hparams.include_constraint_loss else loss
-
 
     def validation_step(self, batch, batch_nb):
         loss, constraint_loss, accuracies = self.get_metrics(batch)
@@ -94,7 +104,7 @@ class SceneBasedRelNetModule(pl.LightningModule):
 
 
 class _RelNet(nn.Module):
-    def __init__(self, num_rels, dropout_p, input_channels=4, num_features=512):
+    def __init__(self, num_rels, dropout_p, use_sigmoid, input_channels=4, num_features=512):
         super(_RelNet, self).__init__()
 
         resnet = models.resnet34(pretrained=True)
@@ -108,8 +118,10 @@ class _RelNet(nn.Module):
         # self.rnn = nn.Sequential(nn.Dropout(dropout_p), nn.RNN(num_features, 128, batch_first=False))
         # self.output = nn.Sequential(nn.Dropout(dropout_p), nn.Linear(128, num_rels),
         #                             nn.Sigmoid())
-        self.output = nn.Sequential(nn.Dropout(dropout_p), nn.Linear(2 * num_features, 256), nn.Linear(256, num_rels),
-                                    nn.Sigmoid())
+        output_layer = [nn.Dropout(dropout_p), nn.Linear(2 * num_features, 256), nn.Linear(256, num_rels)]
+        if use_sigmoid:
+            output_layer.append(nn.Sigmoid())
+        self.output = nn.Sequential(*output_layer)
 
     def _feature_extractor(self, x):
         x = self.feature_extractor(x)
@@ -119,11 +131,5 @@ class _RelNet(nn.Module):
     def forward(self, objs, sources, targets):
         features = self._feature_extractor(objs)
         relations = torch.cat([features[sources], features[targets]], dim=1)
-        # source = features[sources].unsqueeze(0)
-        # target = features[targets].unsqueeze(0)
-        # combined = torch.cat([source, target], dim=0)
-        # combined, _ = self.rnn(combined)
-        # output = self.output(combined[-1])
-        # return output
 
         return self.output(relations)

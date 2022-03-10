@@ -3,6 +3,8 @@ import argparse
 import yaml
 
 from scene_parse.rel_net.config import RelNetConfiguration
+from scene_parse.rel_net.constraints import build_adjacency_matrix, adj_probability, \
+    build_adjacency_matrix_from_edge_list
 from scene_parse.rel_net.datasets import get_test_dataloader
 from scene_parse.rel_net.models import RelNetModule, SceneBasedRelNetModule
 import torch
@@ -56,7 +58,43 @@ def predict_scene_based(opt, model, dataloader, scenes, relation_names):
                     scenes[img_id]['relationships'][relation][edge[0]].append((edge[1], preds[i][j].item()))
 
 
+def predict_scene_adj_based(opt, model, dataloader, scenes, relation_names, relation_map):
+    for data, sources, targets, labels, image_id, (num_nodes, num_edges), _ in tqdm(dataloader,
+                                                                                    'processing objects batches'):
+        num_nodes = num_nodes.item()
+        num_edges = num_edges.item()
+
+        data = data[:num_nodes].squeeze(dim=0).to('cuda')
+        sources = sources[:, :num_edges].squeeze(dim=0).to('cuda').long()
+        targets = targets[:, :num_edges].squeeze(dim=0).to('cuda').long()
+
+        img_id = image_id.item()
+
+        preds = model.forward(data, sources, targets)
+
+        adj = build_adjacency_matrix_from_edge_list(sources, targets, preds, num_nodes)
+        adj = adj_probability(adj)
+
+        if not opt.use_proba:
+            adj = torch.round(preds).int().cpu().numpy()
+
+        for i, _ in enumerate(preds):
+            edge = (sources[i].item(), targets[i].item())
+            prediction = adj[:, edge[0], [edge[1]]]
+            for j, pred in enumerate(prediction):
+                relation = relation_names[j]
+                opposite_relation = relation_map[relation]
+                pred = pred.item()
+                if not opt.use_proba and pred == 1:
+                    scenes[img_id]['relationships'][relation][edge[0]].append(edge[1])
+                    scenes[img_id]['relationships'][opposite_relation][edge[1]].append(edge[0])
+                else:
+                    scenes[img_id]['relationships'][relation][edge[0]].append((edge[1], pred))
+                    scenes[img_id]['relationships'][opposite_relation][edge[0]].append((edge[1], 1 - pred))
+
 def main(opt):
+    relation_map = None # {'left': 'right', 'front': 'behind'}
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = SceneBasedRelNetModule.load_from_checkpoint(opt.model_path, args=opt) if opt.model_type == 'scene_based' \
         else RelNetModule.load_from_checkpoint(opt.model_path, args=opt)
@@ -72,13 +110,21 @@ def main(opt):
     for scene in scenes:
         if 'relationships' not in scene:
             scene['relationships'] = {}
-        for relation in relation_names:
-            scene['relationships'][relation] = [[] for _ in scene['objects']]
+
+        if relation_map is None:
+            for relation in relation_names:
+                scene['relationships'][relation] = [[] for _ in scene['objects']]
+        else:
+            for relation in relation_map.keys() + relation_map.values():
+                scene['relationships'][relation] = [[] for _ in scene['objects']]
 
     model.to(device)
 
     if opt.model_type == 'scene_based':
-        predict_scene_based(opt, model, dataloader, scenes, relation_names)
+        if relation_map is None:
+            predict_scene_based(opt, model, dataloader, scenes, relation_names)
+        else:
+            predict_scene_adj_based(opt, model, dataloader, scenes, relation_names, relation_map)
     else:
         predict_pair_based(opt, model, dataloader, scenes, relation_names)
 

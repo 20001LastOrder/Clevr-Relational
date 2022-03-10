@@ -7,7 +7,8 @@ class RelNetConfiguration:
                  num_workers: int = 4, learning_rate: float = 0.002, resume_from_checkpoint=None,
                  label_names: List = None, model_path: str = '', scenes_path: str = '', use_proba: bool = True,
                  output_path: str = '', test_ann_path: str = '', test_img_h5: str = '', dropout_p: float = 0,
-                 model_type: str = 'normal', noise_ratio: float = 0, include_constraint_loss: bool = False):
+                 model_type: str = 'normal', noise_ratio: float = 0, include_constraint_loss: bool = False,
+                 used_rels: List = None, use_sigmoid: bool = True,):
         self.run_dir = run_dir
         self.dev = dev
         self.max_epochs = max_epochs
@@ -25,7 +26,9 @@ class RelNetConfiguration:
         self.model_type = model_type
         self.noise_ratio = noise_ratio
         self.include_constraint_loss = include_constraint_loss
-
+        self.used_rels = used_rels
+        self.use_sigmoid = use_sigmoid
+        
         # test configs
         self.label_names = label_names
         self.model_path = model_path

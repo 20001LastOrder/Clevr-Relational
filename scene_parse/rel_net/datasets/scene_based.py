@@ -11,19 +11,25 @@ from collections import defaultdict
 
 
 class SceneBasedRelationDataset(Dataset):
-    def __init__(self, obj_ann_path, img_dir, num_rels, img_ids=None, noise_ratio=0):
+    def __init__(self, obj_ann_path, img_dir, num_rels, img_ids=None, used_rels=None):
+        """
+
+        :param obj_ann_path:
+        :param img_dir:
+        :param num_rels: The number of relationships to consider, this will be ignored if used_rels is None
+        :param img_ids:
+        :param used_rels:
+        """
         with open(obj_ann_path) as f:
             anns = json.load(f)
 
         # search for the object id range corresponding to the image split
-        # TODO: randomize the image selection
         img_ids = set(img_ids) if img_ids is not None else set(range(len(anns['scenes'])))
 
         self.scenes = anns['scenes']
         self.dataset = defaultdict(list)
         self.img_dir = img_dir
-        self.noise_ratio = noise_ratio
-        self.num_rels = num_rels
+        self.num_rels = num_rels if used_rels is None else len(used_rels)
 
         # cannot use scenes directly since the object detector may not detected all objects
         for rel in anns['relationships']:
@@ -31,17 +37,19 @@ class SceneBasedRelationDataset(Dataset):
                 continue
 
             # add positive samples of the pair
-            labels = [0 for _ in range(num_rels)]
+            labels = [0 for _ in range(self.num_rels)]
             if 'rel_ids' in rel:
                 for pos in rel['rel_ids']:
-                    if pos < num_rels:
+                    if used_rels is None:
                         labels[pos] = 1
+                    elif pos in used_rels:
+                        labels[used_rels.index(pos)] = 1
 
             self.dataset[rel['image_id']].append([rel['source'], rel['target'], labels])
 
         self.dataset = list(self.dataset.items())
-        for image_id, edges in self.dataset:
-            self.random_flip(edges)
+        # for image_id, edges in self.dataset:
+        #     self.random_flip(edges)
 
         self.dataset_h5 = None
         self.resize_transformer = transforms.Compose([transforms.ToTensor(), transforms.Resize((224, 224))])
@@ -117,7 +125,7 @@ class SceneBasedObjectRelationDataset(pl.LightningDataModule):
 
     def train_dataloader(self):
         dataset = SceneBasedRelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.train_idx,
-                                            noise_ratio=self.args.noise_ratio)
+                                            used_rels=self.args.used_rels)
         dataloader = DataLoader(
             dataset,
             batch_size=self.args.batch_size,
@@ -128,10 +136,11 @@ class SceneBasedObjectRelationDataset(pl.LightningDataModule):
         return dataloader
 
     def val_dataloader(self):
-        dataset = SceneBasedRelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.test_idx)
+        dataset = SceneBasedRelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.test_idx,
+                                            used_rels=self.args.used_rels)
         dataloader = DataLoader(
             dataset,
-            batch_size=self.args.batch_size,
+            batch_size= 1 if self.args.model_type == 'scene_based' else self.args.batch_size,
             num_workers=self.args.num_workers,
             shuffle=False,
             pin_memory=True

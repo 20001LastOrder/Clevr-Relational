@@ -1,0 +1,27 @@
+train:
+  skip: false
+  image_folder: "./data/clevr_block/train/images"
+  annotation_fp: "./data/clevr_block/train/scenes.json"
+  output_dir: "./results/clevr_block/models/object_detector/v2"
+  max_iter: 10000
+  num_workers: 8
+  ims_per_batch: 2
+  base_lr: 0.001
+  batch_size_per_image: 50
+  prediction_threshold: 0.5
+  categories: ["object"]
+
+test:
+  skip: false
+  image_folder: "./data/clevr_block/test/images"
+  annotation_fp: "./data/clevr_block/test/scenes.json"
+  output_dir: "./results/clevr/models/object_detector/v2"
+  max_iter: 10000
+  num_workers: 8
+  ims_per_batch: 2
+  base_lr: 0.0001
+  batch_size_per_image: 50
+  prediction_threshold: 0.5
+  categories: ["object"]
+  dataset_name: 'clevr_test'
+  resume: false
