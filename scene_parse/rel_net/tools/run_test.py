@@ -12,10 +12,10 @@ from tqdm import tqdm
 import json
 
 
-def predict_pair_based(opt, model, dataloader, scenes, relation_names):
+def predict_pair_based(opt, model, dataloader, scenes, relation_names, device):
     for sources, targets, _, source_ids, target_ids, img_ids, _ in tqdm(dataloader, 'processing objects batches'):
-        sources = sources.to('cuda')
-        targets = targets.to('cuda')
+        sources = sources.to(device)
+        targets = targets.to(device)
         preds = model.forward(sources, targets)
 
         if not opt.use_proba:
@@ -32,14 +32,14 @@ def predict_pair_based(opt, model, dataloader, scenes, relation_names):
                     scenes[img_id]['relationships'][relation][edge[0]].append((edge[1], preds[i][j].item()))
 
 
-def predict_scene_based(opt, model, dataloader, scenes, relation_names):
+def predict_scene_based(opt, model, dataloader, scenes, relation_names, device):
     for data, sources, targets, labels, image_id, (num_nodes, num_edges), _ in tqdm(dataloader, 'processing objects batches'):
         num_nodes = num_nodes.item()
         num_edges = num_edges.item()
 
-        data = data[:num_nodes].squeeze(dim=0).to('cuda')
-        sources = sources[:, :num_edges].squeeze(dim=0).to('cuda').long()
-        targets = targets[:, :num_edges].squeeze(dim=0).to('cuda').long()
+        data = data[:num_nodes].squeeze(dim=0).to(device)
+        sources = sources[:, :num_edges].squeeze(dim=0).to(device).long()
+        targets = targets[:, :num_edges].squeeze(dim=0).to(device).long()
 
         img_id = image_id.item()
 
@@ -52,8 +52,9 @@ def predict_scene_based(opt, model, dataloader, scenes, relation_names):
             edge = (sources[i].item(), targets[i].item())
             for j, pred in enumerate(preds[i]):
                 relation = relation_names[j]
-                if not opt.use_proba and pred[i][j].item() == 1:
-                    scenes[img_id]['relationships'][relation][edge[0]].append(edge[1])
+                if not opt.use_proba:
+                    if preds[i][j].item() == 1:
+                        scenes[img_id]['relationships'][relation][edge[0]].append(edge[1])
                 else:
                     scenes[img_id]['relationships'][relation][edge[0]].append((edge[1], preds[i][j].item()))
 
@@ -122,9 +123,9 @@ def main(opt):
 
     if opt.model_type == 'scene_based':
         if relation_map is None:
-            predict_scene_based(opt, model, dataloader, scenes, relation_names)
+            predict_scene_based(opt, model, dataloader, scenes, relation_names, device)
         else:
-            predict_scene_adj_based(opt, model, dataloader, scenes, relation_names, relation_map)
+            predict_scene_adj_based(opt, model, dataloader, scenes, relation_names, relation_map, device)
     else:
         predict_pair_based(opt, model, dataloader, scenes, relation_names)
 
