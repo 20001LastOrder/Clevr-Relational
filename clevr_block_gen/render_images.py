@@ -55,7 +55,7 @@ def initialize_parser():
                         help="Directory where .blend files for object models are stored")
     parser.add_argument('--material-dir', default='data/materials',
                         help="Directory where .blend files for materials are stored")
-    parser.add_argument('--scene_file', default='output/scenes_not_rendered.json')
+    parser.add_argument('--scene-file', default='output/scenes_not_rendered.json')
 
     # Output settings
     parser.add_argument('--start-idx', default=0, type=int,

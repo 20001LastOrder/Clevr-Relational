@@ -1,8 +1,8 @@
 train:
   skip: false
-  image_folder: "./data/clevr_block/train/images"
-  annotation_fp: "./data/clevr_block/train/scenes.json"
-  output_dir: "./results/clevr_block/models/object_detector/v2"
+  image_folder: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/train_temp/images"
+  annotation_fp: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/train_temp/scenes.json"
+  output_dir: "./results/clevr_block/models/object_detector/"
   max_iter: 10000
   num_workers: 8
   ims_per_batch: 2
@@ -10,6 +10,7 @@ train:
   batch_size_per_image: 50
   prediction_threshold: 0.5
   categories: ["object"]
+  resume: true
 
 test:
   skip: false
