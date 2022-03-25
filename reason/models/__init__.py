@@ -1,7 +1,7 @@
 from .encoder import Encoder
 from .decoder import Decoder
 from .seq2seq import Seq2seq
-import utils.utils as utils
+from ..utils import utils
 
 
 def get_vocab(opt):

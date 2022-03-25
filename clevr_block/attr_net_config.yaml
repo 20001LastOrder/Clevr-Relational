@@ -1,8 +1,8 @@
-run_dir: "./results/clevr/models/attr_net"
+run_dir: "./results/clevr_block/models/attr_net"
 dataset: "clevr"
 load_checkpoint_path: null
-ann_path: "./results/clevr/proposals.json"
-img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
+ann_path: "./results/clevr_block/proposals.json"
+img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/train_temp/images.h5"
 attr_names: ["color", "shape", "material", "size"]
 output_dims: [8, 3, 2, 2]
 batch_size: 50
@@ -18,9 +18,9 @@ dev: False
 desc: "Run attribute extractor with more epoches"
 
 # test configuration
-test_img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/test/images.h5"
-test_ann_path: "./results/clevr_block_val/proposals.json"
-model_path: './results/clevr/models/attr_net/model.ckpt'
+test_img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1_2_3_4/images.h5"
+test_ann_path: "./results/clevr_block_val/constraint_1_2_3_4/proposals.json"
+model_path: './results/clevr_block/models/attr_net/model.ckpt'
 attr_map_path: 'C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr_block_val/attr_scenes.json'
+output_path: './results/clevr_block_val/constraint_1_2_3_4/attr_scenes.json'

@@ -2,12 +2,11 @@ import os
 import json
 import sys
 # insert at 1, 0 is the script path (or '' in REPL)
-sys.path.insert(1, '.')
-from options.test_options import TestOptions
-from datasets import get_dataloader
-from executors import get_executor
-from models.parser import Seq2seqParser
-import utils.utils as utils
+from ..options.test_options import TestOptions
+from ..datasets import get_dataloader
+from ..executors import get_executor
+from ..models.parser import Seq2seqParser
+from ..utils import utils
 
 
 def find_clevr_question_type(out_mod):
@@ -92,11 +91,12 @@ if __name__ == '__main__':
         'query_acc': stats['query'] / stats['query_tot'],
         'program_acc': stats['correct_prog'] / stats['total'],
         'overall_acc': stats['correct_ans'] / stats['total'],
-        'answers': answers,
-        'corrects': corrects,
-        'programs': programs
+        # 'answers': answers,
+        # 'corrects': corrects,
+        # 'programs': programs
     }
 
+    print(result)
     utils.mkdirs(os.path.dirname(opt.save_result_path))
     with open(opt.save_result_path, 'w') as fout:
         json.dump(result, fout)

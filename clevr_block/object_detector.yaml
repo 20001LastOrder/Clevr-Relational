@@ -16,7 +16,7 @@ test:
   skip: false
   image_folder: "./data/clevr_block/test/images"
   annotation_fp: "./data/clevr_block/test/scenes.json"
-  output_dir: "./results/clevr/models/object_detector/v2"
+  output_dir: "/results/clevr_block/models/object_detector/"
   max_iter: 10000
   num_workers: 8
   ims_per_batch: 2

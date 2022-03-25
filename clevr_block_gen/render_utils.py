@@ -221,13 +221,13 @@ def add_objects(args, scene_struct, camera, objects, properties):
 
 def compute_all_relationships(scene_struct, properties, eps=0.2):
     """
-  Computes relationships between all pairs of objects in the scene.
-  
-  Returns a dictionary mapping string relationship names to lists of lists of
-  integers, where output[rel][i] gives a list of object indices that have the
-  relationship rel with object i. For example if j is in output['left'][i] then
-  object j is left of object i.
-  """
+    Computes relationships between all pairs of objects in the scene.
+
+    Returns a dictionary mapping string relationship names to lists of lists of
+    integers, where output[rel][i] gives a list of object indices that have the
+    relationship rel with object i. For example if j is in output['left'][i] then
+    object j is left of object i.
+    """
     all_relationships = {}
     for name, direction_vec in scene_struct['directions'].items():
         all_relationships[name] = []
@@ -237,10 +237,10 @@ def compute_all_relationships(scene_struct, properties, eps=0.2):
             for j, obj2 in enumerate(scene_struct['objects']):
                 if obj1 == obj2: continue
                 if name == 'above':
-                    if above(obj1, obj2, properties):
+                    if above(obj2, obj1, properties):
                         related.add(j)
                 elif name == 'below':
-                    if below(obj1, obj2, properties):
+                    if below(obj2, obj1, properties):
                         related.add(j)
                 else:
                     coords2 = obj2['location']

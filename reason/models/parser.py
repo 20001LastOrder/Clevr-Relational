@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 from . import create_seq2seq_net, get_vocab
-import utils.utils as utils
+from ..utils import utils
 
 
 class Seq2seqParser():

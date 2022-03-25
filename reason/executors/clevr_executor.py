@@ -1,6 +1,6 @@
 import random
 import json
-import utils.utils as utils
+from..utils import utils
 
 
 CLEVR_COLORS = ['blue', 'brown', 'cyan', 'gray', 'green', 'purple', 'red', 'yellow']

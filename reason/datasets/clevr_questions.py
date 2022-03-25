@@ -4,7 +4,7 @@ import numpy as np
 import h5py
 import torch
 from torch.utils.data import Dataset
-import utils.utils as utils
+from ..utils import utils
 
 
 class ClevrQuestionDataset(Dataset):
