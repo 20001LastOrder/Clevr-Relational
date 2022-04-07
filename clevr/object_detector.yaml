@@ -1,8 +1,8 @@
 train:
   skip: false
-  image_folder: "G:/My Drive/Research/data/Clevr_mini/images"
-  annotation_fp: "G:/My Drive/Research/data/Clevr_mini/CLEVR_mini_coco_anns.json"
-  output_dir: "./results/clevr/models/object_detector/v2"
+  image_folder: "data/clevr/constraint_1234/images"
+  annotation_fp: "data/clevr/constraint_1234/scenes.json"
+  output_dir: "./results/clevr/models/object_detector"
   max_iter: 10000
   num_workers: 8
   ims_per_batch: 2
@@ -13,9 +13,9 @@ train:
 
 test:
   skip: false
-  image_folder: "G:/My Drive/Research/data/Clevr_mini/images"
-  annotation_fp: "G:/My Drive/Research/data/Clevr_mini/CLEVR_mini_coco_anns.json"
-  output_dir: "./results/clevr/models/object_detector/v2"
+  image_folder: "data/clevr/constraint_1234_test/images"
+  annotation_fp: "data/clevr/constraint_1234_test/scenes.json"
+  output_dir: "./results/clevr/models/object_detector"
   max_iter: 10000
   num_workers: 8
   ims_per_batch: 2

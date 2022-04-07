@@ -34,12 +34,15 @@ def load_pickle(path):
         return pickle.load(f)
 
 
-def get_feat_vec(obj: Dict, attr_map: Dict[str, List]):
+def get_feat_vec(obj: Dict, attr_map: Dict[str, List], directions: Dict[str, List]):
     features = {}
 
     if obj is not None:
         for attr in attr_map.keys():
             features[attr] = attr_map[attr].index(obj[attr])
+        features['x'] = np.dot(obj['location'], directions['right'])
+        features['y'] = np.dot(obj['location'], directions['front'])
+        features['z'] = np.dot(obj['location'], directions['above'])
     else:
         features = {attr: -1 for attr in attr_map.keys()}
     return features

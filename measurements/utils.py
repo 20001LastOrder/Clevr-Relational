@@ -4,6 +4,7 @@ from typing import Dict, List, Union, Optional
 import numpy as np
 from collections import defaultdict
 from tqdm import tqdm
+import pycocotools.mask as mask_util
 
 
 def read_json(file_path: str) -> Union[Dict, List]:
@@ -92,7 +93,9 @@ def process_gt_scenes(scene: Dict, schema: Dict) -> Dict:
     """
     objects = []
     for obj in scene['objects']:
-        objects.append({attr_name: obj[attr_name] for attr_name in schema['attributes'].keys()})
+        new_obj = {attr_name: obj[attr_name] for attr_name in schema['attributes'].keys()}
+        new_obj['mask'] = obj['mask']
+        objects.append(new_obj)
 
     relationships = {rel_name: scene['relationships'][rel_name] for rel_name in schema['relations']}
 
@@ -102,8 +105,55 @@ def process_gt_scenes(scene: Dict, schema: Dict) -> Dict:
     }
 
 
+def process_coord_scene(scene: Dict, schema: Dict) -> Dict:
+    objects = []
+    for obj in scene['objects']:
+        new_obj = {attr_name: obj[attr_name] for attr_name in schema['attributes'].keys()}
+        new_obj['mask'] = obj['mask']
+        objects.append(new_obj)
+
+    relationships = {rel_name: [[] for _ in objects] for rel_name in schema['relations']}
+
+    for i, o1 in enumerate(scene['objects']):
+        for j, o2 in enumerate(scene['objects']):
+            if o1 == o2:
+                continue
+            if o1['x'] - o2['x'] > 0.1:
+                relationships['left'][i].append(j)
+            if o1['x'] - o2['x'] < -0.1:
+                relationships['right'][i].append(j)
+            if o1['z'] > o2['z'] and np.abs(o1['x'] - o2['x']) < 0.1:
+                relationships['below'][i].append(j)
+            if o1['z'] < o2['z'] and np.abs(o1['x'] - o2['x']) < 0.1:
+                relationships['above'][i].append(j)
+
+    return {
+        'objects': objects,
+        'relationships': relationships
+    }
+
+
 def dict_match(dict_1: Dict, dict_2: Dict) -> bool:
     return dict_1 == dict_2
+
+
+def IoU(mask1, mask2):
+    intersection = np.logical_and(mask1, mask2).sum()
+    union = np.logical_or(mask1, mask2).sum()
+    return intersection / union
+
+
+def node_cost(node1: Dict, node2: Dict):
+    mask1 = mask_util.decode(node1['mask'])
+    mask2 = mask_util.decode(node2['mask'])
+
+    node1 = {key: value for key, value in node1.items() if key != 'mask'}
+    node2 = {key: value for key, value in node2.items() if key != 'mask'}
+
+    if IoU(mask1, mask2) < 0.5:
+        return 1000
+    else:
+        return dict_cost(node1, node2)
 
 
 def dict_cost(dict_1: Dict, dict_2: Dict) -> int:
@@ -119,17 +169,30 @@ def dict_cost(dict_1: Dict, dict_2: Dict) -> int:
 def minimum_graph_edit_match(predicted_graph: nx.Graph, gt_graph: nx.Graph, timeout: int = 10, node_ins_cost: int = 4,
                              edge_ins_cost: int = 2) -> List:
     if nx.is_isomorphic(predicted_graph, gt_graph, node_match=dict_match, edge_match=dict_match):
+        # currently not possible with the object masks
         return []
     else:
         return list(
-            nx.optimize_edit_paths(predicted_graph, gt_graph, node_subst_cost=dict_cost, edge_subst_cost=dict_cost,
-                                   node_ins_cost=lambda a: node_ins_cost, edge_ins_cost=lambda e: edge_ins_cost,
+            nx.optimize_edit_paths(predicted_graph, gt_graph, node_subst_cost=node_cost, edge_subst_cost=dict_cost,
+                                   node_ins_cost=lambda a: node_ins_cost, node_del_cost=lambda a: node_ins_cost,
                                    timeout=timeout))
+
+
+def remove_node_attribute(graph: nx.Graph, attr_name):
+    for node_id in graph.nodes:
+        del graph.nodes[node_id][attr_name]
+    return graph
 
 
 def error_classification(predicted_graph: nx.Graph, gt_graph: nx.Graph, graph_matches: List[List]) -> Dict:
     if len(graph_matches) == 0:
+        print(f'Graph matching for graphs failed for {predicted_graph} and {gt_graph}!!!')
         return {}
+
+    predicted_graph = remove_node_attribute(predicted_graph, 'mask')
+    gt_graph = remove_node_attribute(gt_graph, 'mask')
+    num_attributes = sum([len(attributes) for _, attributes in gt_graph.nodes(data=True)])
+    num_edges = sum([len(edge['directions']) for _, _, edge in gt_graph.edges(data=True)])
 
     error_map = {
         'missing_objects': [],
@@ -137,36 +200,71 @@ def error_classification(predicted_graph: nx.Graph, gt_graph: nx.Graph, graph_ma
         "missing_edges": [],
         "more_edges": [],
         'attribute_errors': [],
-        'relationship_errors': []
+        'relationship_errors': [],
+        'SGGen': num_edges,
+        'SGGen+': num_edges + num_attributes,
+        'SA': 1,
+        'FSA': 1
     }
     path = graph_matches[-1]
     node_matches = path[0]
     edge_matches = path[1]
+    non_matching_nodes = set()
+
     for src, target in node_matches:
         if src is None:
             error_map['missing_objects'].append(gt_graph.nodes[target])
+            error_map['FSA'] = 0
+            error_map['SA'] = 0
+
+            # remove all attr_score
+            error_map['SGGen+'] -= len(gt_graph.nodes[target])
+
             continue
         if target is None:
+            error_map['SA'] = 0
             error_map['more_objects'].append(predicted_graph.nodes[src])
             continue
 
-        node1_dict = predicted_graph.nodes[src]
-        node2_dict = gt_graph.nodes[target]
+        node1_dict = {key: value for key, value in predicted_graph.nodes[src].items()}
+        node2_dict = {key: value for key, value in gt_graph.nodes[target].items()}
         if node1_dict != node2_dict:
+            error_map['FSA'] = 0
+            error_map['SA'] = 0
             error_map['attribute_errors'].append((node1_dict, node2_dict))
+
+            # non_matching attributes
+            error_map['SGGen+'] -= sum([1 for key in node2_dict if node1_dict[key] != node2_dict[key]])
+            non_matching_nodes.add(target)
 
     for src, target in edge_matches:
         if src is None:
             error_map['missing_edges'].append(gt_graph.edges[target])
+            error_map['FSA'] = 0
+            error_map['SA'] = 0
+            error_map['SGGen'] -= len(gt_graph.edges[target])
+            error_map['SGGen+'] -= len(gt_graph.edges[target])
             continue
         if target is None:
+            error_map['SA'] = 0
             error_map['more_edges'].append(predicted_graph.edges[src])
             continue
 
         edge1_dict = predicted_graph.edges[src]
         edge2_dict = gt_graph.edges[target]
-        if edge1_dict != edge2_dict:
+        diff = len(edge2_dict['directions'].difference(edge1_dict['directions']))
+        if diff > 0:
+            error_map['FSA'] = 0
+            error_map['SA'] = 0
             error_map['relationship_errors'].append((edge1_dict, edge2_dict))
+            error_map['SGGen+'] -= diff
+
+        error_map['SGGen'] -= len(gt_graph.edges[target]['directions']) \
+            if target[0] in non_matching_nodes or target[1] in non_matching_nodes else diff
+
+    error_map['SGGen'] /= num_edges
+    error_map['SGGen+'] /= (num_edges + num_attributes)
+
     return error_map
 
 
@@ -182,8 +280,8 @@ def error_classification_for_scenes(predicted_scenes: List[Dict], gt_scenes: Lis
     for i, (scene, gt_scene) in enumerate(collection):
         graph, gt_graph = convert_to_nx_di(scene, relationships), convert_to_nx_di(gt_scene, relationships)
         graph_matches = minimum_graph_edit_match(graph, gt_graph, timeout, node_ins_cost, edge_ins_cost)
-        if len(graph_matches) == 0:
-            # the predicted graph is isomorphic as the ground truth graph, no error should be recorded
+        if graph_matches[-1][2] == 0:
+            error_maps.append({'SGGen': 1, 'SGGen+': 1, 'SA': 1, 'FSA': 1})
             continue
 
         error_map = error_classification(graph, gt_graph, graph_matches)

@@ -11,12 +11,12 @@ from os import listdir
 
 
 def image2h5(args):
-    images = read_images(args.image_dir)
+    images = read_images(args.image_dir, args.start_idx, args.num_images)
     store_many_hdf5(images, args.output_file)
 
 
-def read_images(data_dir):
-    image_names = sorted(listdir(data_dir))
+def read_images(data_dir, start_idx, num_images):
+    image_names = sorted(listdir(data_dir))[start_idx: start_idx + num_images]
     images = np.vstack([np.expand_dims(cv2.imread(os.path.join(data_dir, image)), axis=0) for image in tqdm(image_names)])
 
     for i in range(images.shape[0]):
@@ -36,6 +36,8 @@ def store_many_hdf5(images,  filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_dir', type=str, required=True)
+    parser.add_argument('--start_idx', type=int, default=0)
+    parser.add_argument('--num_images', type=int)
     parser.add_argument('--output_file', type=str, required=True)
     args = parser.parse_args()
     image2h5(args)

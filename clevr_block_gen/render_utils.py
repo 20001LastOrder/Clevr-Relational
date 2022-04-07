@@ -35,6 +35,14 @@ def render_scene(args,
                  properties=None,
                  **kwargs
                  ):
+    # start output redirecting
+    logfile = 'blender_render.log'
+    open(logfile, 'a').close()
+    old = os.dup(sys.stdout.fileno())
+    sys.stdout.flush()
+    os.close(sys.stdout.fileno())
+    fd = os.open(logfile, os.O_WRONLY)
+
     # Load the main blendfile
     bpy.ops.wm.open_mainfile(filepath=args.base_scene_blendfile)
 
@@ -145,10 +153,10 @@ def render_scene(args,
     # Render the scene and dump the scene data structure
     scene_struct['objects'] = objects
     scene_struct['relationships'] = compute_all_relationships(scene_struct, properties)
+
     while True:
         try:
             # bpy.ops.render.render(write_still=True)
-
             result = bpycv.render_data()
 
             # save result
@@ -161,8 +169,13 @@ def render_scene(args,
             seg = np.repeat(result["inst"][:, :, np.newaxis], 3, axis=2)
             cv2.imwrite(seg_image, seg)
 
-            # visualization inst_rgb_depth for human
-            cv2.imwrite("demo-vis(inst_rgb_depth).jpg", result.vis()[..., ::-1])
+            # # visualization inst_rgb_depth for human
+            # cv2.imwrite("demo-vis(inst_rgb_depth).jpg", result.vis()[..., ::-1])
+
+            # disable output redirection
+            os.close(fd)
+            os.dup(old)
+            os.close(old)
 
             break
         except Exception as e:
@@ -177,8 +190,8 @@ def render_scene(args,
 
 def add_objects(args, scene_struct, camera, objects, properties):
     """
-  Add objects to the current blender scene
-  """
+    Add objects to the current blender scene
+    """
     blender_objects = []
     for i, obj in enumerate(objects):
         # Actually add the object to the scene
@@ -269,15 +282,15 @@ def below(o1, o2, properties):
 
 def check_visibility(blender_objects, min_pixels_per_object):
     """
-  Check whether all objects in the scene have some minimum number of visible
-  pixels; to accomplish this we assign random (but distinct) colors to all
-  objects, and render using no lighting or shading or antialiasing; this
-  ensures that each object is just a solid uniform color. We can then count
-  the number of pixels of each color in the output image to check the visibility
-  of each object.
+    Check whether all objects in the scene have some minimum number of visible
+    pixels; to accomplish this we assign random (but distinct) colors to all
+    objects, and render using no lighting or shading or antialiasing; this
+    ensures that each object is just a solid uniform color. We can then count
+    the number of pixels of each color in the output image to check the visibility
+    of each object.
 
-  Returns True if all objects are visible and False otherwise.
-  """
+    Returns True if all objects are visible and False otherwise.
+    """
     f, path = tempfile.mkstemp(suffix='.png')
     object_colors = render_shadeless(blender_objects, path=path)
     img = bpy.data.images.load(path)
@@ -295,11 +308,11 @@ def check_visibility(blender_objects, min_pixels_per_object):
 
 def render_shadeless(blender_objects, path='flat.png'):
     """
-  Render a version of the scene with shading disabled and unique materials
-  assigned to all objects, and return a set of all colors that should be in the
-  rendered image. The image itself is written to path. This is used to ensure
-  that all objects will be visible in the final rendered scene.
-  """
+    Render a version of the scene with shading disabled and unique materials
+    assigned to all objects, and return a set of all colors that should be in the
+    rendered image. The image itself is written to path. This is used to ensure
+    that all objects will be visible in the final rendered scene.
+    """
     render_args = bpy.context.scene.render
 
     # Cache the render args we are about to clobber

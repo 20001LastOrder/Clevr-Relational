@@ -1,6 +1,6 @@
-run_dir: "./results/clevr/models/rel_noisy"
-ann_path: "./results/clevr/proposals.json"
-img_h5: "G:/My Drive/Research/data/Clevr_mini/images.h5"
+run_dir: "./results/clevr/models/constraint_1234/rel_net"
+ann_path: "./results/clevr/constraint_1234/proposals.json"
+img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr/constraint_1234/images_train.h5"
 num_rels: 4
 #used_rels: [0, 2]
 batch_size: 8
@@ -14,7 +14,7 @@ train_size: 3600
 learning_rate: 0.002
 model_type: "scene_based"
 noise_ratio: 0
-include_constraint_loss: true # This is not effective if use_sigmoid is false
+include_constraint_loss: false # This is not effective if use_sigmoid is false
 use_sigmoid: true # If false, this will trigger a 'correct-by-construction run'
 #resume_from_checkpoint: './results/clevr/models/rel_net_output_layer/epoch=5-step=8921.ckpt'
 

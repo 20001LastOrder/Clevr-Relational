@@ -7,7 +7,7 @@ class AttrNetConfiguration:
                  num_workers: int = 8, learning_rate: int = 0.01, concat_img: bool = False, max_epochs: int = 20,
                  precision: int = 32, dev: bool = False, model_path: str = '', attr_map_path: str = '',
                  use_proba: bool = True, output_path: str = '', test_img_h5: str = '', test_ann_path: str = '',
-                 desc: str = ''):
+                 desc: str = '', include_coords: bool = False):
         self.run_dir = run_dir
         self.dataset = dataset
         self.load_checkpoint_path = load_checkpoint_path
@@ -17,6 +17,7 @@ class AttrNetConfiguration:
         self.output_dims = output_dims
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.include_coords = include_coords
 
         # Training configuration
         self.split_id = split_id

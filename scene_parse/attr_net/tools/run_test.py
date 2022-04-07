@@ -14,7 +14,7 @@ import torch.nn.functional as functional
 def collect_proba(preds):
     result = [[] for _ in preds[0]]  # each attribute of the preds have the same dimension (# of objects)
     for pred in preds:
-        pred = functional.softmax(pred, dim=1)
+        pred = functional.softmax(pred, dim=1) if pred.size(1) > 1 else pred.squeeze()
         for j, value in enumerate(pred.cpu().tolist()):
             result[j].append(value)
     return result
@@ -39,25 +39,26 @@ def main(opt):
 
     model.to(device)
 
-    for data, _, _, img_ids in tqdm(dataloader, 'processing objects batches'):
+    for data, _, _, (img_ids, masks) in tqdm(dataloader, 'processing objects batches'):
         data = data.to(device)
 
         preds = model.forward(data)
 
-        attribute_labels = np.stack([torch.argmax(pred, dim=1).cpu() for pred in preds]).transpose((1, 0)) \
-            if not opt.use_proba else collect_proba(preds)
-
+        attribute_labels = np.stack([torch.argmax(pred, dim=1).cpu() if pred.shape[1] > 1 else pred.squeeze().cpu().detach() for pred in preds])\
+            .transpose((1, 0)) if not opt.use_proba else collect_proba(preds)
         for i, attributes in enumerate(attribute_labels):
             img_id = img_ids[i]
             obj = {}
             for j, attribute in enumerate(attributes):
                 attr_name = attr_names[j]
                 if not opt.use_proba:
-                    obj[attr_name] = attr_map[attr_name][attribute]
+                    obj[attr_name] = attr_map[attr_name][int(attribute)] if attr_name in attr_map else attribute
                 else:
                     obj[attr_name] = attribute
-
+                obj['mask'] = {'size': [masks['size'][0][i].item(), masks['size'][1][i].item()],
+                               'counts': masks['counts'][i]}
             scenes[img_id]['objects'].append(obj)
+
 
     with open(opt.output_path, 'w') as f:
         json.dump({'scenes': scenes}, f)

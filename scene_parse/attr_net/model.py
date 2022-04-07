@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from torch.nn.functional import mse_loss
 import pytorch_lightning as pl
 from torchmetrics import Accuracy
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -16,10 +17,11 @@ class AttrNetClassificationModule(pl.LightningModule):
         else:
             self.input_channels = 3
 
-        self.criterion = torch.nn.CrossEntropyLoss()
+        self.criterion = nn.MSELoss() if self.hparams.include_coords else nn.CrossEntropyLoss()
         self.accuracy = Accuracy()
         self.output_dims = self.hparams.output_dims
-        self.net = _Net(self.output_dims, self.input_channels)
+        self.net = _NetCoord(self.output_dims, self.input_channels) if self.hparams.include_coords \
+            else _Net(self.output_dims, self.input_channels)
 
     def forward(self, images):
         predictions = self.net(images)
@@ -28,8 +30,16 @@ class AttrNetClassificationModule(pl.LightningModule):
     def get_metrics(self, batch):
         images, labels, _, _ = batch
         predictions = self.forward(images)
-        loss = sum([self.criterion(prediction, label) for prediction, label in zip(predictions, labels)])
-        accuracy = [self.accuracy(torch.argmax(prediction, dim=1), label) for prediction, label in zip(predictions, labels)]
+        if self.hparams.include_coords:
+            labels = [label.float() for label in labels]
+            loss = sum([self.criterion(prediction.squeeze(), label) for prediction, label in zip(predictions, labels)])
+            accuracy = [self.accuracy(torch.argmax(prediction, dim=1), torch.argmax(label, dim=1))
+                        if prediction.shape[1] > 1 else mse_loss(prediction.squeeze(), label)
+                        for prediction, label in zip(predictions, labels)]
+        else:
+            loss = sum([self.criterion(prediction, label) for prediction, label in zip(predictions, labels)])
+            accuracy = [self.accuracy(torch.argmax(prediction, dim=1), label)
+                        for prediction, label in zip(predictions, labels)]
         return loss, accuracy
 
     def training_step(self, batch, batch_nb):
@@ -72,17 +82,6 @@ class _Net(nn.Module):
         for output_dim in output_dims:
             self.output_layers.append(nn.Linear(512, output_dim))
 
-        # layers = list(resnet.children())
-        
-        # # remove the last layer
-        # layers.pop()
-        # # remove the first layer as we take a 6-channel input
-        # layers.pop(0)
-        # layers.insert(0, nn.Conv2d(input_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False))
-
-        # self.main = nn.Sequential(*layers)
-        # self.final_layer = nn.Linear(512, output_dim)
-
     def forward(self, x):
         x = self.feature_extractor(x)
         x = x.view(x.size(0), -1)
@@ -91,6 +90,32 @@ class _Net(nn.Module):
             outputs.append(output_layer(x))
         return outputs
 
+
+class _NetCoord(nn.Module):
+    def __init__(self, output_dims, input_channels=6):
+        super(_NetCoord, self).__init__()
+
+        resnet = models.resnet34(pretrained=True)
+        layers = list(resnet.children())
+
+        # remove the last layer
+        layers.pop()
+        # remove the first layer as we take a 6-channel input
+        layers.pop(0)
+        layers.insert(0, nn.Conv2d(input_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False))
+
+        self.main = nn.Sequential(*layers)
+        self.final_layers = nn.ModuleList()
+        for output_dim in output_dims:
+            self.final_layers.append(nn.Linear(512, output_dim))
+
+    def forward(self, x):
+        x = self.main(x)
+        x = x.view(x.size(0), -1)
+        outputs = []
+        for final_layers in self.final_layers:
+            outputs.append(final_layers(x))
+        return outputs
 
 def get_model(opt):
     model = AttrNetClassificationModule(opt)

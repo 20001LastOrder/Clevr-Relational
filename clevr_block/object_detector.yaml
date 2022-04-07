@@ -1,9 +1,9 @@
 train:
   skip: false
-  image_folder: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/train_temp/images"
-  annotation_fp: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/train_temp/scenes.json"
-  output_dir: "./results/clevr_block/models/object_detector/"
-  max_iter: 10000
+  image_folder: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1234/images"
+  annotation_fp: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1234/scenes_train.json"
+  output_dir: "./results/clevr_block/models/constraint_1234/object_detector/"
+  max_iter: 15000
   num_workers: 8
   ims_per_batch: 2
   base_lr: 0.001
@@ -14,9 +14,9 @@ train:
 
 test:
   skip: false
-  image_folder: "./data/clevr_block/test/images"
-  annotation_fp: "./data/clevr_block/test/scenes.json"
-  output_dir: "/results/clevr_block/models/object_detector/"
+  image_folder: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1234/images"
+  annotation_fp: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1234/scenes_test.json"
+  output_dir: "./results/clevr_block/models/constraint_1234/object_detector/model_final.pth"
   max_iter: 10000
   num_workers: 8
   ims_per_batch: 2

@@ -20,7 +20,10 @@ def get_simple_concrete_attributes(graph: Dict, schema: Dict) -> List[Dict]:
     for obj in graph['objects']:
         new_obj = {}
         for attr_name, probs in obj.items():
-            new_obj[attr_name] = attributes[attr_name][np.argmax(probs)]
+            if attr_name != 'mask':
+                new_obj[attr_name] = attributes[attr_name][np.argmax(probs)]
+            else:
+                new_obj['mask'] = obj['mask']
         objects.append(new_obj)
     return objects
 
