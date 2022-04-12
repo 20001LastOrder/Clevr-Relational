@@ -19,9 +19,9 @@ dev: False
 desc: "Run attribute extractor with coordinates"
 
 # test configuration
-test_img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1234/images_test.h5"
-test_ann_path: "./results/clevr_block_val/constraint_1234/proposals.json"
-model_path: './results/clevr_block/models/constraint_1234/attr_net_coord/models_2.ckpt'
-attr_map_path: 'C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/clevr_attr_map.json'
+test_img_h5: "data/clevr/c4/images.h5"
+test_ann_path: "./results/clevr_val/c4/proposals.json"
+model_path: './results/clevr/models/constraint_1234/attr_net_coord/model.ckpt'
+attr_map_path: 'G:/My Drive/Research/data/Clevr_mini/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr_block_val/constraint_1234/scenes_coord_prob.json'
+output_path: './results/clevr_val/c4/scenes_coord_prob.json'

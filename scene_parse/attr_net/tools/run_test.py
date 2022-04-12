@@ -15,8 +15,13 @@ def collect_proba(preds):
     result = [[] for _ in preds[0]]  # each attribute of the preds have the same dimension (# of objects)
     for pred in preds:
         pred = functional.softmax(pred, dim=1) if pred.size(1) > 1 else pred.squeeze()
-        for j, value in enumerate(pred.cpu().tolist()):
-            result[j].append(value)
+
+        values = pred.cpu().tolist()
+        if type(values) == float:
+            result[j].append(values)
+        else:
+            for j, value in enumerate(values):
+                result[j].append(value)
     return result
 
 
@@ -58,7 +63,6 @@ def main(opt):
                 obj['mask'] = {'size': [masks['size'][0][i].item(), masks['size'][1][i].item()],
                                'counts': masks['counts'][i]}
             scenes[img_id]['objects'].append(obj)
-
 
     with open(opt.output_path, 'w') as f:
         json.dump({'scenes': scenes}, f)

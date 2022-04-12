@@ -42,3 +42,46 @@ def process_coord_scene_blockworld(scene: Dict):
         del o['z']
 
     return scene
+
+def process_coord_scene_blockworld_clevr(scene: Dict):
+    n = len(scene['objects'])
+    relationships = {
+        'front': [[] for _ in range(n)],
+        'behind': [[] for _ in range(n)],
+        'left': [[] for _ in range(n)],
+        'right': [[] for _ in range(n)]
+    }
+
+    relation_map = {
+        'left': 'right',
+        'right': 'left',
+        'front': 'behind',
+        'behind': 'front'
+    }
+
+    for i, o1 in enumerate(scene['objects']):
+        for j, o2 in enumerate(scene['objects']):
+            if o1 == o2:
+                continue
+            if o1['x'] > o2['x']:
+                relation = 'left'
+            if o1['x'] < o2['x']:
+                relation = 'right'
+
+            relationships[relation][i].append([j, 1])
+            relationships[relation_map[relation]][i].append([j, 0])
+
+            if o1['y'] > o2['y']:
+                relation = 'behind'
+            if o1['y'] < o2['y']:
+                relation = 'front'
+            # assume the relationships are perfectly predicted
+            relationships[relation][i].append([j, 1])
+            relationships[relation_map[relation]][i].append([j, 0])
+
+    scene['relationships'] = relationships
+    for o in scene['objects']:
+        del o['x']
+        del o['y']
+
+    return scene

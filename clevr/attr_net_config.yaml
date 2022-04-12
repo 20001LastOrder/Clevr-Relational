@@ -18,9 +18,9 @@ dev: False
 desc: "Run attribute extractor with more epoches"
 
 # test configuration
-test_img_h5: "G:/My Drive/Research/Fault-Tolerant Neural Networks/Clevr/data/CLEVR_v1.0/images/test_images.h5"
-test_ann_path: "./results/clevr_1.0/proposals.json"
-model_path: '../results/clevr/models/constraint_1234/attr_netmodel.ckpt'
+test_img_h5: "data/clevr/c4/images.h5"
+test_ann_path: "./results/clevr_val/c4/proposals.json"
+model_path: './results/clevr/models/constraint_1234/attr_net/model.ckpt'
 attr_map_path: 'G:/My Drive/Research/data/Clevr_mini/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr_1.0/attr_scenes.json'
+output_path: './results/clevr_val/c4/attr_scenes.json'

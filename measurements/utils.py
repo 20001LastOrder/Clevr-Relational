@@ -132,6 +132,33 @@ def process_coord_scene(scene: Dict, schema: Dict) -> Dict:
         'relationships': relationships
     }
 
+def process_coord_scene_clevr(scene: Dict, schema: Dict) -> Dict:
+    objects = []
+    for obj in scene['objects']:
+        new_obj = {attr_name: obj[attr_name] for attr_name in schema['attributes'].keys()}
+        new_obj['mask'] = obj['mask']
+        objects.append(new_obj)
+
+    relationships = {rel_name: [[] for _ in objects] for rel_name in schema['relations']}
+
+    for i, o1 in enumerate(scene['objects']):
+        for j, o2 in enumerate(scene['objects']):
+            if o1 == o2:
+                continue
+            if o1['x'] > o2['x']:
+                relationships['left'][i].append(j)
+            if o1['x'] < o2['x']:
+                relationships['right'][i].append(j)
+            if o1['y'] > o2['y']:
+                relationships['behind'][i].append(j)
+            if o1['y'] < o2['y']:
+                relationships['front'][i].append(j)
+
+    return {
+        'objects': objects,
+        'relationships': relationships
+    }
+
 
 def dict_match(dict_1: Dict, dict_2: Dict) -> bool:
     return dict_1 == dict_2
