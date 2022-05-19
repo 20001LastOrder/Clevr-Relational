@@ -19,8 +19,8 @@ def get_test_dataloader(opt):
 
     dataloader = DataLoader(
         dataset,
-        batch_size=1 if opt.model_type == 'scene_based' else opt.batch_size,
-        num_workers=opt.num_workers,
+        batch_size=1 if opt.model_type == 'scene_based' else 32,
+        num_workers= opt.num_workers,
         shuffle=False,
         pin_memory=True
     )

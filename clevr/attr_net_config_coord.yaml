@@ -1,8 +1,8 @@
-run_dir: "./results/clevr/models/constraint_1234/attr_net_coord"
+run_dir: "./results/clevr/models/original/attr_net_coord_with_less_data"
 dataset: "clevr"
 load_checkpoint_path: null
-ann_path: "./results/clevr/constraint_1234/proposals.json"
-img_h5: "data/clevr/constraint_1234/images_train.h5"
+ann_path: "./results/clevr/original/proposals.json"
+img_h5: "data/clevr/original/images.h5"
 attr_names: ["color", "shape", "material", "size", "x", "y"]
 output_dims: [8, 3, 2, 2, 1, 1]
 batch_size: 50
@@ -10,18 +10,18 @@ num_workers: 4
 include_coords: true
 
 #training configuration
-split_id: 3600
+split_id: 900
 learning_rate: 0.002
 concat_img: true
-max_epochs: 200
+max_epochs: 50
 precision: 32
 dev: False
-desc: "Run attribute extractor with coordinates"
+desc: "Run attribute extractor with coordinates and half data"
 
 # test configuration
-test_img_h5: "data/clevr/c4/images.h5"
-test_ann_path: "./results/clevr_val/c4/proposals.json"
-model_path: './results/clevr/models/constraint_1234/attr_net_coord/model.ckpt'
+test_img_h5: "data/clevr/constraint_1234_test/images.h5"
+test_ann_path: "./results/clevr_val/original/constraint_1234/proposals.json"
+model_path: './results/clevr/models/original/attr_net_coord_with_less_data/model_25.ckpt'
 attr_map_path: 'G:/My Drive/Research/data/Clevr_mini/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr_val/c4/scenes_coord_prob.json'
+output_path: './results/clevr_val/original/constraint_1234/data_25/scenes_coord_prob.json'

@@ -1,0 +1,29 @@
+run_dir: "./results/clevr_block/models/constraint_1234/attr_net_less_data"
+dataset: "clevr"
+load_checkpoint_path: null
+ann_path: "./results/clevr_block/constraint_1234/proposals.json"
+img_h5: "data/clevr_block/constraint_1234/images_train.h5"
+attr_names: ["color", "shape", "material", "size"]
+output_dims: [8, 3, 2, 2]
+batch_size: 50
+num_workers: 4
+filename: "model_44"
+
+#training configuration
+train_size: 3600
+val_size: 400
+seed: 202204
+learning_rate: 0.002
+concat_img: false
+max_epochs: 50
+precision: 32
+dev: False
+desc: "Run attribute extractor with half data"
+
+# test configuration
+test_img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1234_test/images.h5"
+test_ann_path: "./results/clevr_block_val/constraint_1234/constraint_1234/proposals.json"
+model_path: './results/clevr_block/models/constraint_1234/attr_net_less_data/model_44.ckpt'
+attr_map_path: 'C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/clevr_attr_map.json'
+use_proba: true
+output_path: './results/clevr_block_val/constraint_1234/constraint_1234/data_44/attr_scenes.json'

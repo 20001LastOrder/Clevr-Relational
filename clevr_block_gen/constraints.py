@@ -166,20 +166,21 @@ class ClevrPairBehindConstraint(SceneConstraint):
     """
 
     def evaluate(self, scene):
-        cyan_metal = None
-        red_sphere = None
+        cyan_metals = []
+        red_spheres = []
         behind_rel = scene['relationships']['behind']
 
         for o in scene['objects']:
             if o['color'] == 'cyan' and o['material'] == 'metal':
-                cyan_metal = o
+                cyan_metals.append(o)
             if o['color'] == 'red' and o['shape'] == 'sphere':
-                red_sphere = o
-        if cyan_metal is not None and red_sphere is not None and \
-                (len(behind_rel[cyan_metal['id']]) > 1 or len(behind_rel[red_sphere['id']]) > 1):
-            return False
-        else:
-            return True
+                red_spheres.append(o)
+
+        for cyan_metal in cyan_metals:
+            for red_sphere in red_spheres:
+                if len(behind_rel[cyan_metal['id']]) <= 1 and len(behind_rel[red_sphere['id']]) <= 1:
+                    return True
+        return len(cyan_metals) == 0 or len(red_spheres) == 0
 
 
 class ClevrObjectIdentityConstraint(SceneConstraint):

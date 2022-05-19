@@ -238,13 +238,13 @@ class ClevrLPProblem:
         }
 
         for name, v in attr_variables.items():
-            if v.x == 1:
+            if np.isclose(v.x, 1):
                 tokens = name.split('_')
                 predicted_scene['objects'][int(tokens[1])][tokens[0]] = self.attr_map['attributes'][tokens[0]][
                     int(tokens[2])]
 
         for name, v in rel_variables.items():
-            if v.x == 1:
+            if np.isclose(v.x, 1):
                 tokens = name.split('_')
                 predicted_scene['relationships'][tokens[0]][int(tokens[2])].append(int(tokens[1]))
         return predicted_scene

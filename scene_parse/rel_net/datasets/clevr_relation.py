@@ -80,9 +80,14 @@ class ObjectRelationDataset(pl.LightningDataModule):
         with open(args.ann_path) as f:
             anns = json.load(f)
         idx = np.array(range(len(anns['scenes'])))
-        np.random.shuffle(idx)
+        if args.shuffle_train:
+            np.random.shuffle(idx)
 
         self.train_idx = idx[:args.train_size]
+        if self.args.val_size is None:
+            self.val_idx = idx[args.train_size:]
+        else:
+            self.val_idx = idx[args.train_size:args.train_size + self.args.val_size]
         self.test_idx = idx[args.train_size:]
 
     def train_dataloader(self):
@@ -97,7 +102,7 @@ class ObjectRelationDataset(pl.LightningDataModule):
         return dataloader
 
     def val_dataloader(self):
-        dataset = RelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.test_idx)
+        dataset = RelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.val_idx)
         dataloader = DataLoader(
             dataset,
             batch_size=self.args.batch_size,
@@ -108,4 +113,12 @@ class ObjectRelationDataset(pl.LightningDataModule):
         return dataloader
 
     def test_dataloader(self):
-        return self.val_dataloader()
+        dataset = RelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.test_idx)
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.args.batch_size,
+            num_workers=self.args.num_workers,
+            shuffle=False,
+            pin_memory=True
+        )
+        return dataloader

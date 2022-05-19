@@ -118,9 +118,14 @@ class SceneBasedObjectRelationDataset(pl.LightningDataModule):
         with open(args.ann_path) as f:
             anns = json.load(f)
         idx = np.array(range(len(anns['scenes'])))
-        np.random.shuffle(idx)
+        if args.shuffle_train:
+            np.random.shuffle(idx)
 
         self.train_idx = idx[:args.train_size]
+        if self.args.val_size is None:
+            self.val_idx = idx[args.train_size:]
+        else:
+            self.val_idx = idx[args.train_size:args.train_size + self.args.val_size]
         self.test_idx = idx[args.train_size:]
 
     def train_dataloader(self):
@@ -136,7 +141,7 @@ class SceneBasedObjectRelationDataset(pl.LightningDataModule):
         return dataloader
 
     def val_dataloader(self):
-        dataset = SceneBasedRelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.test_idx,
+        dataset = SceneBasedRelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.val_idx,
                                             used_rels=self.args.used_rels)
         dataloader = DataLoader(
             dataset,
@@ -148,4 +153,13 @@ class SceneBasedObjectRelationDataset(pl.LightningDataModule):
         return dataloader
 
     def test_dataloader(self):
-        return self.val_dataloader()
+        dataset = SceneBasedRelationDataset(self.args.ann_path, self.args.img_h5, self.args.num_rels, self.test_idx,
+                                            used_rels=self.args.used_rels)
+        dataloader = DataLoader(
+            dataset,
+            batch_size=1 if self.args.model_type == 'scene_based' else self.args.batch_size,
+            num_workers=self.args.num_workers,
+            shuffle=False,
+            pin_memory=True
+        )
+        return dataloader

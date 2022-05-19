@@ -1,8 +1,8 @@
 train:
   skip: false
-  image_folder: "data/clevr/constraint_1234/images"
-  annotation_fp: "data/clevr/constraint_1234/scenes.json"
-  output_dir: "./results/clevr/models/object_detector"
+  image_folder: "data/clevr/original/images"
+  annotation_fp: "data/clevr/original/scenes.json"
+  output_dir: "./results/clevr/models/original/object_detector"
   max_iter: 10000
   num_workers: 8
   ims_per_batch: 2

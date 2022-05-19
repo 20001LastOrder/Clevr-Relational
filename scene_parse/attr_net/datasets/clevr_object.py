@@ -166,10 +166,10 @@ class ObjectAttributeDataset(pl.LightningDataModule):
 
         if self.args.include_coords:
             dataset = ClevrObjectDatasetCoord(self.args.ann_path, self.args.img_h5, self.args.attr_names,
-                                              self.args.output_dims, max_img_id=self.args.split_id)
+                                              self.args.output_dims, max_img_id=self.args.train_size)
         else:
             dataset = ClevrObjectDataset(self.args.ann_path, self.args.img_h5, self.args.attr_names,
-                                         max_img_id=self.args.split_id)
+                                         max_img_id=self.args.train_size)
         dataloader = DataLoader(
             dataset,
             batch_size=self.args.batch_size,
@@ -180,12 +180,14 @@ class ObjectAttributeDataset(pl.LightningDataModule):
         return dataloader
 
     def val_dataloader(self):
+        max_idx = self.args.train_size + self.args.val_size if self.args.val_size is not None else None
+
         if self.args.include_coords:
             dataset = ClevrObjectDatasetCoord(self.args.ann_path, self.args.img_h5, self.args.attr_names,
-                                              self.args.output_dims, min_img_id=self.args.split_id)
+                                              self.args.output_dims, min_img_id=self.args.train_size, max_img_id=max_idx)
         else:
             dataset = ClevrObjectDataset(self.args.ann_path, self.args.img_h5, self.args.attr_names,
-                                         min_img_id=self.args.split_id)
+                                         min_img_id=self.args.train_size, max_img_id=max_idx)
         dataloader = DataLoader(
             dataset,
             batch_size=self.args.batch_size,
@@ -196,7 +198,20 @@ class ObjectAttributeDataset(pl.LightningDataModule):
         return dataloader
 
     def test_dataloader(self):
-        return self.val_dataloader()
+        if self.args.include_coords:
+            dataset = ClevrObjectDatasetCoord(self.args.ann_path, self.args.img_h5, self.args.attr_names,
+                                              self.args.output_dims, min_img_id=self.args.train_size)
+        else:
+            dataset = ClevrObjectDataset(self.args.ann_path, self.args.img_h5, self.args.attr_names,
+                                         min_img_id=self.args.train_size)
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.args.batch_size,
+            num_workers=self.args.num_workers,
+            shuffle=False,
+            pin_memory=True
+        )
+        return dataloader
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
         if self.args.include_coords:

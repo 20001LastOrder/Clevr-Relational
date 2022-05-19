@@ -21,13 +21,14 @@ class SameColorConstraint(SceneConstraint):
     def evaluate(self, scene):
         objects = scene['objects']
         n = len(objects)
+        count = 0
         for i in range(n):
             o1 = objects[i]
             for j in range(i + 1, n):
                 o2 = objects[j]
                 if o1['color'] == o2['color'] and not self.__exist_object_inbetween(scene, o1, o2):
-                    return False
-        return True
+                    count += 1
+        return count
 
 
 class MaterialConstraint(SceneConstraint):
@@ -43,10 +44,11 @@ class MaterialConstraint(SceneConstraint):
         return False
 
     def evaluate(self, scene):
+        count = 0
         for o in scene['objects']:
             if o['material'] == 'metal' and self.__rubber_front(scene, o):
-                return False
-        return True
+                count += 1
+        return count
 
 
 class LargeCubeConstraint(SceneConstraint):
@@ -62,10 +64,11 @@ class LargeCubeConstraint(SceneConstraint):
         return False
 
     def evaluate(self, scene):
+        count = 0
         for o in scene['objects']:
             if o['size'] == 'large' and o['shape'] == 'cube' and not self.__exist_small_cylinder_behind(scene, o):
-                return False
-        return True
+                count += 1
+        return count
 
 
 class PairBehindConstraint(SceneConstraint):
@@ -84,12 +87,12 @@ class PairBehindConstraint(SceneConstraint):
             if o['color'] == 'red' and o['shape'] == 'sphere':
                 red_spheres.append(o)
 
-        satisfied = False
+        count = 0
         for cyan_metal in cyan_metals:
             for red_sphere in red_spheres:
                 if len(behind_rel[cyan_metal['id']]) <= 1 and len(behind_rel[red_sphere['id']]) <= 1:
-                    return True
-        return len(cyan_metals) == 0 or len(red_spheres) == 0
+                    return 0
+        return len(cyan_metals) != 0 and len(red_spheres) != 0
 
 
 class ObjectIdentityConstraint(SceneConstraint):

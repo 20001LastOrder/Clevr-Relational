@@ -43,7 +43,7 @@ def main(opt):
     } for i in range(num_images)]
 
     model.to(device)
-
+    model = model.eval()
     for data, _, _, (img_ids, masks) in tqdm(dataloader, 'processing objects batches'):
         data = data.to(device)
 

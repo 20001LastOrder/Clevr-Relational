@@ -153,7 +153,7 @@ class RelNetModule(pl.LightningModule):
 
 
 class _RelNet(nn.Module):
-    def __init__(self, num_rels, dropout_p, use_sigmoid, input_channels=4, num_features=512, hidden_size=128):
+    def __init__(self, num_rels, dropout_p, use_sigmoid, input_channels=4, num_features=512):
         super(_RelNet, self).__init__()
 
         resnet = models.resnet34(pretrained=True)
@@ -166,9 +166,9 @@ class _RelNet(nn.Module):
 
         # self.feature_fc = nn.Linear(512, num_features, bias=True)
 
-        self.rnn = nn.Sequential(nn.Dropout(dropout_p), nn.RNN(num_features, hidden_size, batch_first=False))
+        # self.rnn = nn.Sequential(nn.Dropout(dropout_p), nn.RNN(num_features, hidden_size, batch_first=False))
 
-        output_layer = [nn.Dropout(dropout_p), nn.Linear(hidden_size, num_rels)]
+        output_layer = [nn.Dropout(dropout_p), nn.Linear(2 * num_features, 256), nn.Linear(256, num_rels)]
         if use_sigmoid:
             output_layer.append(nn.Sigmoid())
         self.output = nn.Sequential(*output_layer)
@@ -179,10 +179,9 @@ class _RelNet(nn.Module):
         return x
 
     def forward(self, source, target):
-        source = self._feature_extractor(source).unsqueeze(0)
-        target = self._feature_extractor(target).unsqueeze(0)
-
-        combined = torch.cat([source, target], dim=0)
-        combined, _ = self.rnn(combined)
-        output = self.output(combined[-1])
+        source = self._feature_extractor(source)
+        target = self._feature_extractor(target)
+        combined = torch.cat([source, target], dim=1)
+        # combined, _ = self.rnn(combined)
+        output = self.output(combined)
         return output

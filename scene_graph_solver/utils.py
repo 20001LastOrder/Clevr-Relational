@@ -3,12 +3,12 @@ import numpy as np
 
 def process_coord_scene(scene: Dict, dataset: str):
     if dataset == 'blockworld':
-        return process_coord_scene_blockworld(scene)
+        return process_coord_scene_blocksworld(scene)
     else:
         raise Exception('Dataset is not supported!')
 
 
-def process_coord_scene_blockworld(scene: Dict):
+def process_coord_scene_blocksworld(scene: Dict):
     n = len(scene['objects'])
     relationships = {
         'above': [[] for _ in range(n)],
@@ -43,7 +43,7 @@ def process_coord_scene_blockworld(scene: Dict):
 
     return scene
 
-def process_coord_scene_blockworld_clevr(scene: Dict):
+def process_coord_scene_clevr(scene: Dict):
     n = len(scene['objects'])
     relationships = {
         'front': [[] for _ in range(n)],

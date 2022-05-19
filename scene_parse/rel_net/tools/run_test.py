@@ -13,7 +13,7 @@ import json
 
 
 def predict_pair_based(opt, model, dataloader, scenes, relation_names, device):
-    for sources, targets, _, source_ids, target_ids, img_ids, _ in tqdm(dataloader, 'processing objects batches'):
+    for sources, targets, _, source_ids, target_ids, img_ids in tqdm(dataloader, 'processing objects batches'):
         sources = sources.to(device)
         targets = targets.to(device)
         preds = model.forward(sources, targets)
@@ -120,6 +120,7 @@ def main(opt):
                 scene['relationships'][relation] = [[] for _ in scene['objects']]
 
     model.to(device)
+    model = model.eval()
 
     if opt.model_type == 'scene_based':
         if relation_map is None:
@@ -127,7 +128,7 @@ def main(opt):
         else:
             predict_scene_adj_based(opt, model, dataloader, scenes, relation_names, relation_map, device)
     else:
-        predict_pair_based(opt, model, dataloader, scenes, relation_names)
+        predict_pair_based(opt, model, dataloader, scenes, relation_names, device)
 
     with open(opt.output_path, 'w') as f:
         json.dump({'scenes': scenes}, f)
