@@ -5,7 +5,7 @@ import gurobipy
 import numpy as np
 import torch
 from itertools import permutations
-
+import time
 
 
 class BlocksworldLPProblem:
@@ -17,13 +17,28 @@ class BlocksworldLPProblem:
         self.include_bottom_stack = include_bottom_stack
         self.include_yellow = include_yellow
 
-    def solve_for_scene(self, scene):
+    def solve_for_scene(self, scene, measure_time=False):
+        if measure_time:
+            measure = dict()
+
+        start = time.time()
         model, attr_variables, rel_variables = self.get_LP_problem(scene)
         self.add_constraints(model, scene, rel_variables, attr_variables)
+        if measure_time:
+            measure['create problem'] = time.time() - start
+
         model.setParam('OutputFlag', 0)
+        start = time.time()
         model.optimize()
+        if measure_time:
+            measure['solve problem'] = time.time() - start
+
+        start = time.time()
         predicted_scene = self.get_predicted_scene_for_block_world(attr_variables, rel_variables, scene)
-        return predicted_scene
+        if measure_time:
+            measure['transform solution'] = time.time() - start
+
+        return predicted_scene if measure_time else predicted_scene, measure
 
     def get_attribute_variables(self, objects):
         variables = []
@@ -198,13 +213,28 @@ class ClevrLPProblem:
         self.object_behind = object_behind
         self.M = 100
 
-    def solve_for_scene(self, scene):
+    def solve_for_scene(self, scene, measure_time=False):
+        if measure_time:
+            measure = dict()
+
+        start = time.time()
         model, attr_variables, rel_variables = self.get_LP_problem(scene)
         self.add_constraints(model, scene, rel_variables, attr_variables)
+        if measure_time:
+            measure['create problem'] = time.time() - start
+
         model.setParam('OutputFlag', 0)
+        start = time.time()
         model.optimize()
+        if measure_time:
+            measure['solve problem'] = time.time() - start
+
+        start = time.time()
         predicted_scene = self.get_predicted_scene(attr_variables, rel_variables, scene)
-        return predicted_scene
+        if measure_time:
+            measure['transform solution'] = time.time() - start
+
+        return predicted_scene if measure_time else predicted_scene, measure
 
     def get_attribute_variables(self, objects):
         variables = []
