@@ -9,7 +9,7 @@ batch_size: 50
 num_workers: 4
 
 #training configuration
-split_id: 450 # 3600
+#split_id: 450 # 3600
 learning_rate: 0.002
 concat_img: false
 max_epochs: 50
@@ -18,9 +18,9 @@ dev: False
 desc: "Run attribute extractor with 1/4 of training data"
 
 # test configuration
-test_img_h5: "data/clevr/constraint_1234_test/images.h5"
-test_ann_path: "./results/clevr_val/constraint_1234/constraint_1234/proposals.json"
+test_img_h5: "./data/more_images/clevr_more_objects/images.h5"
+test_ann_path: "./results/more_objects/clevr/proposals.json"
 model_path: './results/clevr/models/constraint_1234/attr_net/model.ckpt'
 attr_map_path: 'G:/My Drive/Research/data/Clevr_mini/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr_val/constraint_1234/constraint_1234/attr_scenes.json'
+output_path: './results/more_objects/clevr/attr_scenes.json'

@@ -9,7 +9,7 @@ batch_size: 50
 num_workers: 4
 
 #training configuration
-split_id: 1800
+#split_id: 1800
 learning_rate: 0.002
 concat_img: false
 max_epochs: 50
@@ -18,9 +18,9 @@ dev: False
 desc: "Run attribute extractor with half data"
 
 # test configuration
-test_img_h5: "C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/constraint_1234_test/images.h5"
-test_ann_path: "./results/clevr_block_val/original/constraint_1234/proposals.json"
-model_path: './results/clevr_block/models/original/attr_net_less_data/model_50.ckpt'
+test_img_h5: "./data/more_images/block_more_objects/images.h5"
+test_ann_path: "./results/more_objects/block/proposals.json"
+model_path: './results/clevr_block/models/original/attr_net/model.ckpt'
 attr_map_path: 'C:/Users/chenp/Documents/github/Clevr-Relational/data/clevr_block/clevr_attr_map.json'
 use_proba: true
-output_path: './results/clevr_block_val/original/constraint_1234/data_50/attr_scenes.json'
+output_path: './results/more_objects/block/attr_scenes.json'

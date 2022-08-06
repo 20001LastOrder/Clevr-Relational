@@ -28,8 +28,13 @@ def convert_to_nx(scene, directions, colors=None) -> nx.Graph:
     return graph
 
 
-def convert_to_nx_di(scene, directions) -> nx.Graph:
+def convert_to_nx_di(scene, directions, include_id=False) -> nx.Graph:
     graph = nx.DiGraph()
+
+    if include_id:
+        for i, obj in enumerate(scene['objects']):
+            obj['id'] = i
+
     nodes = [(i, data) for i, data in enumerate(scene['objects'])]
     edges = defaultdict(set)
     graph.add_nodes_from(nodes)
@@ -84,7 +89,7 @@ def is_more_significant(target: Dict[str, List[float]], objects: List[Dict[str, 
     return more_significant
 
 
-def process_gt_scenes(scene: Dict, schema: Dict) -> Dict:
+def process_gt_scenes(scene: Dict, schema: Dict, use_mask: bool = True) -> Dict:
     """
     Process the ground truth scenes to make sure they only contains desired attributes and relationships
     :param scene: ground truth scene
@@ -94,7 +99,8 @@ def process_gt_scenes(scene: Dict, schema: Dict) -> Dict:
     objects = []
     for obj in scene['objects']:
         new_obj = {attr_name: obj[attr_name] for attr_name in schema['attributes'].keys()}
-        new_obj['mask'] = obj['mask']
+        if use_mask:
+            new_obj['mask'] = obj['mask']
         objects.append(new_obj)
 
     relationships = {rel_name: scene['relationships'][rel_name] for rel_name in schema['relations']}
@@ -171,13 +177,17 @@ def IoU(mask1, mask2):
 
 
 def node_cost(node1: Dict, node2: Dict):
-    mask1 = mask_util.decode(node1['mask'])
-    mask2 = mask_util.decode(node2['mask'])
+    if 'mask' in node1:
+        mask1 = mask_util.decode(node1['mask'])
+        mask2 = mask_util.decode(node2['mask'])
+        match = IoU(mask1, mask2) >= 0.5
+    else:
+        match = node1['id'] == node2['id']
 
     node1 = {key: value for key, value in node1.items() if key != 'mask'}
     node2 = {key: value for key, value in node2.items() if key != 'mask'}
 
-    if IoU(mask1, mask2) < 0.5:
+    if not match:
         return 1000
     else:
         return dict_cost(node1, node2)
@@ -207,7 +217,8 @@ def minimum_graph_edit_match(predicted_graph: nx.Graph, gt_graph: nx.Graph, time
 
 def remove_node_attribute(graph: nx.Graph, attr_name):
     for node_id in graph.nodes:
-        del graph.nodes[node_id][attr_name]
+        if attr_name in graph.nodes[node_id]:
+            del graph.nodes[node_id][attr_name]
     return graph
 
 
@@ -297,7 +308,7 @@ def error_classification(predicted_graph: nx.Graph, gt_graph: nx.Graph, graph_ma
 
 def error_classification_for_scenes(predicted_scenes: List[Dict], gt_scenes: List[Dict], relationships: List[str],
                                     progress: bool = True, timeout: int = 10, node_ins_cost: int = 4,
-                                    edge_ins_cost: int = 2) -> List[Dict]:
+                                    edge_ins_cost: int = 2, use_mask: bool = True) -> List[Dict]:
     error_maps = []
     if progress:
         collection = tqdm(list(zip(predicted_scenes, gt_scenes)))
@@ -305,13 +316,18 @@ def error_classification_for_scenes(predicted_scenes: List[Dict], gt_scenes: Lis
         collection = zip(predicted_scenes, gt_scenes)
 
     for i, (scene, gt_scene) in enumerate(collection):
-        graph, gt_graph = convert_to_nx_di(scene, relationships), convert_to_nx_di(gt_scene, relationships)
+        if use_mask:
+            graph, gt_graph = convert_to_nx_di(scene, relationships), convert_to_nx_di(gt_scene, relationships)
+        else:
+            graph, gt_graph = convert_to_nx_di(scene, relationships, include_id=True), convert_to_nx_di(gt_scene, relationships, include_id=True)
+
         graph_matches = minimum_graph_edit_match(graph, gt_graph, timeout, node_ins_cost, edge_ins_cost)
         if graph_matches[-1][2] == 0:
             error_maps.append({'SGGen': 1, 'SGGen+': 1, 'SA': 1, 'FSA': 1})
             continue
 
         error_map = error_classification(graph, gt_graph, graph_matches)
+
         error_map['id'] = i
         error_maps.append(error_map)
 

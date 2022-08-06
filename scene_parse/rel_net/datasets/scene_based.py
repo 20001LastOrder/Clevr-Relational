@@ -82,10 +82,10 @@ class SceneBasedRelationDataset(Dataset):
     def __getitem__(self, idx):
         if self.dataset_h5 is None:
             self.load_h5()
-
+        # TODO: Optmize: dynamic number of max objects
         img_id = self.dataset[idx][0]
         edges = self.dataset[idx][1]
-        max_obj = 12
+        max_obj = 21
 
         sources = torch.empty((max_obj ** 2))
         targets = torch.empty((max_obj ** 2))

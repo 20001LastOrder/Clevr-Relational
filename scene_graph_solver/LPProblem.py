@@ -3,6 +3,9 @@ from itertools import product
 from gurobipy import and_, or_, GRB, Model
 import gurobipy
 import numpy as np
+import torch
+from itertools import permutations
+
 
 
 class BlocksworldLPProblem:
@@ -403,3 +406,166 @@ class ClevrLPProblem:
             model.addConstr(post_condition_met == or_([v for v in post_conditions]))
             # actual constraint
             model.addConstr(1 - (has_red_sphere + has_cyan_metal - 1) + post_condition_met >= 1)
+
+class VGLPProblem:
+    def __init__(self, attr_map, loop=False, opposite=False, person=False):
+        self.always_keep_rel = {7, 21, 0, 42}  # The original label - 1
+        self.always_keep_attr = {77, 148, 90}
+        self.attr_k = 1
+        self.rel_k = 1
+
+        self.idx_to_label = attr_map['idx_to_label']
+        self.idx_to_predicate = attr_map['idx_to_predicate']
+
+        self.loop = loop
+        self.opposite = opposite
+        self.person = person
+
+    def solve_for_scene(self, scene):
+        model, attr_variables, rel_variables = self.get_LP_problem(scene)
+        self.add_constraints(model, scene, rel_variables, attr_variables)
+        model.setParam('OutputFlag', 0)
+        model.optimize()
+        predicted_scene = self.get_predicted_scene(attr_variables, rel_variables, scene)
+        return predicted_scene
+
+    def get_problem(self, scene):
+        model, attr_variables, rel_variables = self.get_LP_problem(scene)
+        self.add_constraints(model, scene, rel_variables, attr_variables)
+        return model, attr_variables, rel_variables
+
+    def solve_problem(self, scene, model, attr_variables, rel_variables):
+        model.setParam('OutputFlag', 0)
+        model.optimize()
+        predicted_scene = self.get_predicted_scene(attr_variables, rel_variables, scene)
+        return predicted_scene
+
+    def get_attribute_variables(self, object_labels):
+        num_objects = object_labels.shape[0]
+
+        object_labels = object_labels[:, 1:].float()  # assume all objects are there
+        object_labels = torch.nn.functional.softmax(object_labels, dim=1)
+        _, top_k_idx = torch.topk(object_labels, k=self.attr_k, dim=1)
+        top_k_idx = top_k_idx.tolist()
+        object_labels = object_labels.tolist()
+
+        variables = []
+        probabilities = {}
+        for i in range(num_objects):
+            labels = set(top_k_idx[i]).union(self.always_keep_attr)
+            for v in labels:
+                variable_name = f'{i}_{v}'
+                variables.append(variable_name)
+                probabilities[variable_name] = object_labels[i][v]
+        return variables, probabilities
+
+    def get_relationship_variables(self, scene):
+        rel_pair_idxs = scene['rel_pair_idxs'].tolist()
+        pred_rel_scores = scene['pred_rel_scores'][:, 1:]  # do not consider the case where not rel exists
+        _, top_k_idx = torch.topk(pred_rel_scores, k=self.rel_k, dim=1)
+        top_k_idx = top_k_idx.tolist()
+        pred_rel_scores = pred_rel_scores.tolist()
+
+        variables = []
+        probabilities = {}
+
+        for i, (s, t) in enumerate(rel_pair_idxs):
+            rels = set(top_k_idx[i]).union(self.always_keep_rel)
+            for rel in rels:
+                variable_name = f'{s}_{t}_{rel}'
+                variables.append(variable_name)
+                probabilities[variable_name] = pred_rel_scores[i][rel]
+
+        return variables, probabilities
+
+    def get_LP_problem(self, scene, eps=1e-50):
+        model = Model("scene_solver")
+        attr_variables, attr_probabilities = self.get_attribute_variables(scene['predict_logits'])
+        rel_variables, rel_probabilities = self.get_relationship_variables(scene)
+
+        attr_variables = model.addVars(attr_variables, vtype=GRB.BINARY, name='attr')
+        rel_variables = model.addVars(rel_variables, vtype=GRB.BINARY, name='rel')
+
+        attr_objective = [attr_variables[key] * np.log(max(attr_probabilities[key], eps)) for key in
+                          attr_variables.keys()]
+        rel_objective = [
+            rel_variables[key] * np.log(max(rel_probabilities[key], eps)) for key in rel_variables.keys()]
+
+        model.setObjective(gurobipy.quicksum(attr_objective + rel_objective), GRB.MAXIMIZE)
+        model.update()
+        return model, attr_variables, rel_variables
+
+    def get_predicted_scene(self, attr_variables, rel_variables, scene):
+        num_objects = scene['predict_logits'].shape[0]
+        predicted_scene = {
+            'objects': [{} for _ in range(num_objects)],
+            'relationships': {rel: [[] for _ in range(num_objects)] for rel in self.idx_to_predicate.values()}
+        }
+
+        for name, v in attr_variables.items():
+            if v.x == 1:
+                tokens = name.split('_')
+                predicted_scene['objects'][int(tokens[0])]['label'] = self.idx_to_label[str(int(tokens[1]) + 1)]
+
+        for name, v in rel_variables.items():
+            if v.x == 1:
+                tokens = name.split('_')
+                predicate = self.idx_to_predicate[str(int(tokens[2]) + 1)]
+                predicted_scene['relationships'][predicate][int(tokens[0])].append(int(tokens[1]))
+        return predicted_scene
+
+    def add_constraints(self, model, scene, rel_variables, attr_variables):
+        num_objects = scene['predict_logits'].shape[0]
+        num_labels = scene['predict_logits'].shape[1] - 1
+        num_predicates = scene['pred_rel_scores'].shape[1] - 1
+
+        # one constraint per object and one rel per object pairs
+        for i in range(num_objects):
+            variables = []
+            for v in range(num_labels):
+                if f'{i}_{v}' in attr_variables:
+                    variables.append(attr_variables[f'{i}_{v}'])
+            attr_constraint = gurobipy.quicksum(variables) == 1
+            model.addConstr(attr_constraint)
+
+        for s in range(num_objects):
+            for t in range(num_objects):
+                if s == t:
+                    continue
+
+                variables = []
+                for p in range(num_predicates):
+                    if f'{s}_{t}_{p}' in rel_variables:
+                        variables.append(rel_variables[f'{s}_{t}_{p}'])
+                model.addConstr(gurobipy.quicksum(variables) == 1)
+
+
+        if self.person:
+            person_labels = [78, 149, 91]
+            person_variables = []
+            for i in range(num_objects):
+                for person_label in person_labels:
+                    variable_name = f'{i}_{person_label - 1}'  # because we drop label 0 (no label)
+                    person_variables.append(attr_variables[variable_name])
+            person_constraint = gurobipy.quicksum(person_variables) >= 1
+            model.addConstr(person_constraint)
+
+        if self.opposite:
+            opposite_predicates = [8, 22, 1, 43]
+            for p in opposite_predicates:
+                p = p - 1
+                for s in range(num_objects):
+                    for t in range(s + 1, num_objects):
+                        constraint = rel_variables[f'{s}_{t}_{p}'] + rel_variables[f'{t}_{s}_{p}'] <= 1
+                        model.addConstr(constraint)
+
+        if self.loop:
+            combs = permutations(range(num_objects), 3)
+            transitivity_predicates = [8, 22, 1, 43]
+
+            for i, j, k in combs:
+                for p in transitivity_predicates:
+                    p = p - 1
+                    model.addConstr(
+                        rel_variables[f'{i}_{j}_{p}'] + rel_variables[f'{j}_{k}_{p}'] + rel_variables[
+                            f'{k}_{i}_{p}'] <= 2)

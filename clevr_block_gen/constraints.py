@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 
-from blocks import State, Block
+from networkx import transitivity
+
+from .blocks import State, Block
 
 
 def has_small_below(state: State, obj: Block):
@@ -26,6 +28,14 @@ def get_clevr_constraint_map():
         'large_cube': ClevrLargeCubeConstraint(),
         'pair_behind': ClevrPairBehindConstraint(),
         'identity': ClevrObjectIdentityConstraint()
+    }
+
+
+def get_vg_constraint_map():
+    return {
+        'opposite': VGOppositeConstraint(),
+        # 'transitivity': VGTransitivityConstraint(),
+        'label': VGLabelConstraint(),
     }
 
 
@@ -199,3 +209,46 @@ class ClevrObjectIdentityConstraint(SceneConstraint):
                         o1['size'] == o2['size']:
                     return False
         return True
+
+
+class VGOppositeConstraint(SceneConstraint):
+    name = 'opposite'
+    def check_oppsite(self, rels):
+        for source, targets in enumerate(rels):
+            for target in targets:
+                if source in rels[target]:
+                    return False
+        return True
+
+    def evaluate(self, scene):
+        rels = scene['relationships']
+        return self.check_oppsite(rels['behind']) and self.check_oppsite(rels['in']) and self.check_oppsite(rels['above']) \
+               and self.check_oppsite(rels['under'])
+
+
+class VGTransitivityConstraint(SceneConstraint):
+    name = 'transitivity'
+    def check_transitivity(self, rels):
+        for s, targets in enumerate(rels):
+            for t in targets:
+                for k in rels[t]:
+                    if k not in targets:
+                        return False
+        return True
+
+    def evaluate(self, scene):
+        rels = scene['relationships']
+        return self.check_transitivity(rels['on']) and self.check_transitivity(rels['in']) and \
+               self.check_transitivity(rels['above']) and self.check_transitivity(rels['under'])
+
+
+class VGLabelConstraint(SceneConstraint):
+    name='label'
+    labels = {'man', 'woman', 'person'}
+
+    def evaluate(self, scene):
+        objs = scene['objects']
+        for obj in objs:
+            if obj['label'] in self.labels:
+                return True
+        return False

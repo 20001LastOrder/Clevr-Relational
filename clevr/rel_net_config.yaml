@@ -19,10 +19,10 @@ use_sigmoid: true # If false, this will trigger a 'correct-by-construction run'
 #resume_from_checkpoint: './results/clevr/models/rel_net_output_layer/epoch=5-step=8921.ckpt'
 
 # test configuration
-test_ann_path: "./results/clevr_val/constraint_1234/constraint_1234/proposals.json"
-test_img_h5: "data/clevr/constraint_1234_test/images.h5"
+test_ann_path: "./results/more_objects/clevr/proposals.json"
+test_img_h5: "./data/more_images/clevr_more_objects/images.h5"
 label_names: ["left", "right", "front", "behind"]
 model_path: './results/clevr/models/constraint_1234/rel_net/model.ckpt'
-scenes_path: './results/clevr_val/constraint_1234/constraint_1234/attr_scenes.json'
+scenes_path: './results/more_objects/clevr/attr_scenes.json'
 use_proba: True
-output_path: './results/clevr_val/constraint_1234/constraint_1234/rel_scenes.json'
+output_path: './results/more_objects/clevr/rel_scenes.json'
