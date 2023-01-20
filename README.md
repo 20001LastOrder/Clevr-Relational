@@ -1,5 +1,8 @@
 # Clevr-Relational
 
+
+Repo for ASE 22 paper: Chen, Boqi, Kristóf Marussy, Sebastian Pilarski, Oszkár Semeráth, and Daniel Varro. "Consistent Scene Graph Generation by Constraint Optimization." In 37th IEEE/ACM International Conference on Automated Software Engineering, pp. 1-13. 2022. ([View Paper](https://dl.acm.org/doi/abs/10.1145/3551349.3560433))
+
 ---
 **NOTE**
 
@@ -11,7 +14,7 @@ one in the `measurements` folder) of the paper can be found [here](https://figsh
 ## Installation
 1. install [PyTorch](https://pytorch.org/)==1.10.0 based on your system configuration
 2. Install other dependencies with `pip install -r requirements.txt`
-3. Get the generated datasets from  [here](https://drive.google.com/file/d/1dolMsZhSFEZNqwoH0j6t3TRN0QEMxXsU/view?usp=sharing)
+3. Get the generated datasets from  [here](https://drive.google.com/file/d/1bCypBk8GeRvdmlZmlXvfWlW0RMDwKqoA/view?usp=sharing)
 
 ## Object Detector
 1. Train the object detector with (Change the path in object_detector.yaml if needed)
